@@ -2,11 +2,6 @@ import json, time, base64, hmac, hashlib
 from workers import Response, WorkerEntrypoint
 from pyodide.http import pyfetch
 
-# Remove these lines - don't access env vars at module level
-# SUPABASE_URL = os.environ["SUPABASE_URL"]
-# SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
-# JWT_SECRET = os.environ["JWT_SECRET"]
-
 def b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
@@ -67,80 +62,102 @@ async def sb_post(path, body, url, key):
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
     }
-    return await pyfetch(
+    res = await pyfetch(
         f"{url}/rest/v1/{path}",
         method="POST",
         headers=headers,
         body=json.dumps(body)
     )
+    
+    if not res.ok:
+        error_text = await res.text()
+        raise Exception(f"Supabase error: {res.status} - {error_text}")
+    
+    return res
 
 class Default(WorkerEntrypoint):
     async def fetch(self, request):
-        # Access environment variables from self.env
-        SUPABASE_URL = self.env.SUPABASE_URL
-        SUPABASE_KEY = self.env.SUPABASE_SERVICE_KEY
-        JWT_SECRET = self.env.JWT_SECRET
-        
-        path = request.url.split("/")[-1]
-        method = request.method
+        # CORS headers
+        cors_headers = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        }
 
-        # ---- LOGIN ----
-        if path == "login" and method == "POST":
-            body = await request.json()
+        # Handle OPTIONS preflight request
+        if request.method == "OPTIONS":
+            return Response("", status=204, headers=cors_headers)
 
-            res = await sb_get(
-                f"members?name=eq.{body['name']}&password=eq.{body['password']}&select=member_id,name",
-                SUPABASE_URL,
-                SUPABASE_KEY
-            )
+        try:
+            # Access environment variables
+            SUPABASE_URL = self.env.SUPABASE_URL
+            SUPABASE_KEY = self.env.SUPABASE_SERVICE_KEY
+            JWT_SECRET = self.env.JWT_SECRET
+            
+            path = request.url.split("/")[-1]
+            method = request.method
 
-            if not res:
-                return Response("Unauthorized", status=401)
+            # ---- LOGIN ----
+            if path == "login" and method == "POST":
+                body = await request.json()
 
-            token = sign_jwt(res[0], JWT_SECRET)
-            return Response.json({"token": token})
+                res = await sb_get(
+                    f"members?name=eq.{body['name']}&password=eq.{body['password']}&select=member_id,name",
+                    SUPABASE_URL,
+                    SUPABASE_KEY
+                )
 
-        # ---- AUTH REQUIRED BELOW ----
-        payload = auth_payload(request, JWT_SECRET)
-        if not payload:
-            return Response("Unauthorized", status=401)
+                if not res:
+                    return Response("Unauthorized", status=401, headers=cors_headers)
 
-        # ---- INVENTORY ----
-        if path == "registry" and method == "GET":
-            data = await sb_get("inventory?select=*", SUPABASE_URL, SUPABASE_KEY)
-            return Response.json(data)
+                token = sign_jwt(res[0], JWT_SECRET)
+                return Response.json({"token": token}, headers=cors_headers)
 
-        # ---- PROJECTS ----
-        if path == "projects" and method == "GET":
-            data = await sb_get("projects?select=*", SUPABASE_URL, SUPABASE_KEY)
-            return Response.json(data)
+            # ---- AUTH REQUIRED BELOW ----
+            payload = auth_payload(request, JWT_SECRET)
+            if not payload:
+                return Response("Unauthorized", status=401, headers=cors_headers)
 
-        # ---- ISSUE ----
-        if path == "issue" and method == "POST":
-            body = await request.json()
-            await sb_post("rpc/issue_items", {
-                "p_member_id": payload["member_id"],
-                "p_project_id": body["project_id"],
-                "p_items": body["items"],
-                "p_return_date": body.get("return_date")
-            }, SUPABASE_URL, SUPABASE_KEY)
-            return Response.json({"success": True})
+            # ---- INVENTORY ----
+            if path == "registry" and method == "GET":
+                data = await sb_get("inventory?select=*", SUPABASE_URL, SUPABASE_KEY)
+                return Response.json(data, headers=cors_headers)
 
-        # ---- FULL RETURN ----
-        if path == "full" and method == "POST":
-            body = await request.json()
-            await sb_post("rpc/return_issue", {
-                "p_issue_id": body["issue_id"]
-            }, SUPABASE_URL, SUPABASE_KEY)
-            return Response.json({"success": True})
+            # ---- PROJECTS ----
+            if path == "projects" and method == "GET":
+                data = await sb_get("projects?select=*", SUPABASE_URL, SUPABASE_KEY)
+                return Response.json(data, headers=cors_headers)
 
-        # ---- PARTIAL RETURN ----
-        if path == "partial" and method == "POST":
-            body = await request.json()
-            await sb_post("rpc/return_items", {
-                "p_issue_id": body["issue_id"],
-                "p_items": body["items"]
-            }, SUPABASE_URL, SUPABASE_KEY)
-            return Response.json({"success": True})
+            # ---- ISSUE ----
+            if path == "issue" and method == "POST":
+                body = await request.json()
+                await sb_post("rpc/issue_items", {
+                    "p_member_id": payload["member_id"],
+                    "p_project_id": body["project_id"],
+                    "p_items": body["items"],
+                    "p_return_date": body.get("return_date")
+                }, SUPABASE_URL, SUPABASE_KEY)
+                return Response.json({"success": True}, headers=cors_headers)
 
-        return Response("Not Found", status=404)
+            # ---- FULL RETURN ----
+            if path == "full" and method == "POST":
+                body = await request.json()
+                await sb_post("rpc/return_issue", {
+                    "p_issue_id": body["issue_id"]
+                }, SUPABASE_URL, SUPABASE_KEY)
+                return Response.json({"success": True}, headers=cors_headers)
+
+            # ---- PARTIAL RETURN ----
+            if path == "partial" and method == "POST":
+                body = await request.json()
+                await sb_post("rpc/return_items", {
+                    "p_issue_id": body["issue_id"],
+                    "p_items": body["items"]
+                }, SUPABASE_URL, SUPABASE_KEY)
+                return Response.json({"success": True}, headers=cors_headers)
+
+            return Response("Not Found", status=404, headers=cors_headers)
+
+        except Exception as e:
+            # Always return CORS headers even on error
+            return Response(f"Error: {str(e)}", status=500, headers=cors_headers)
