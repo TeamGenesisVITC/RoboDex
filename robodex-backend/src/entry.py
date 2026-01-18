@@ -138,6 +138,15 @@ class Default(WorkerEntrypoint):
                     "p_return_date": body.get("return_date")
                 }, SUPABASE_URL, SUPABASE_KEY)
                 return Response.json({"success": True}, headers=cors_headers)
+            
+            #---- ISSUES ----
+            if path == "my-issues" and method == "GET":
+                data = await sb_get(
+                    f"issues?member_id=eq.{payload['member_id']}&select=*",
+                    SUPABASE_URL,
+                    SUPABASE_KEY
+                )
+                return Response.json(data, headers=cors_headers)
 
             # ---- FULL RETURN ----
             if path == "full" and method == "POST":
