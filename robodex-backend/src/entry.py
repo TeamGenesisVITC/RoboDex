@@ -206,6 +206,13 @@ class Default(WorkerEntrypoint):
                     "success": True,
                     "token": new_token
                 }, headers=cors_headers)
+            
+            if path == "me" and method == "GET":
+                # payload already contains member_id and name from the JWT
+                return Response.json({
+                    "member_id": payload["member_id"],
+                    "name": payload["name"]
+                }, headers=cors_headers)
 
             return Response("Not Found", status=404, headers=cors_headers)
 

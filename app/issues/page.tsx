@@ -4,6 +4,8 @@
 
 import { useState, useEffect } from "react";
 import { api } from "../lib/api";
+import { useCart } from "../context/CartContext";
+import { useRouter } from "next/navigation";
 
 interface IssueItemRaw {
   id: string;
@@ -43,6 +45,8 @@ export default function IssuesPage() {
   const [showPartialReturn, setShowPartialReturn] = useState(false);
   const [partialReturns, setPartialReturns] = useState<{ [key: string]: number }>({});
   const [itemNames, setItemNames] = useState<{ [key: string]: string }>({});
+  const { addToCart } = useCart();
+  const router = useRouter();
 
   function groupIssues(raw: IssueItemRaw[]): GroupedIssue[] {
     const map = new Map<string, GroupedIssue>();
@@ -118,7 +122,6 @@ export default function IssuesPage() {
     }
   }
 
-
   async function handleFullReturn(issue_id: string) {
     if (!confirm("Return this entire issue?")) return;
 
@@ -171,6 +174,16 @@ export default function IssuesPage() {
     setPartialReturns(initial);
   }
 
+  function handleReissue(issue: GroupedIssue) {
+    // Add all items from this issue to cart
+    issue.items.forEach(item => {
+      addToCart(item.item_no, item.quantity);
+    });
+
+    alert(`Added ${issue.items.length} item(s) to cart!`);
+    router.push("/cart");
+  }
+
   return (
     <main style={{ padding: "2rem" }}>
       <h1>My Issues</h1>
@@ -221,36 +234,52 @@ export default function IssuesPage() {
                   </div>
                 </div>
 
-                {!issue.returned && (
-                  <div style={{ display: "flex", gap: "0.5rem", flexDirection: "column" }}>
+                <div style={{ display: "flex", gap: "0.5rem", flexDirection: "column" }}>
+                  {!issue.returned ? (
+                    <>
+                      <button
+                        onClick={() => handleFullReturn(issue.issue_id)}
+                        style={{
+                          padding: "0.5rem 1rem",
+                          cursor: "pointer",
+                          backgroundColor: "#4CAF50",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        Full Return
+                      </button>
+                      <button
+                        onClick={() => openPartialReturn(issue)}
+                        style={{
+                          padding: "0.5rem 1rem",
+                          cursor: "pointer",
+                          backgroundColor: "#2196F3",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        Partial Return
+                      </button>
+                    </>
+                  ) : (
                     <button
-                      onClick={() => handleFullReturn(issue.issue_id)}
+                      onClick={() => handleReissue(issue)}
                       style={{
                         padding: "0.5rem 1rem",
                         cursor: "pointer",
-                        backgroundColor: "#4CAF50",
+                        backgroundColor: "#FF9800",
                         color: "white",
                         border: "none",
                         borderRadius: "4px",
                       }}
                     >
-                      Full Return
+                      Reissue
                     </button>
-                    <button
-                      onClick={() => openPartialReturn(issue)}
-                      style={{
-                        padding: "0.5rem 1rem",
-                        cursor: "pointer",
-                        backgroundColor: "#2196F3",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      Partial Return
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           ))}
