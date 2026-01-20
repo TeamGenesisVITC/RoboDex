@@ -3,15 +3,38 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { InventoryItem } from "../types";
+import { useCart } from "../context/CartContext";
 import { useRouter } from "next/navigation";
+
+interface ItemDetailsExtended {
+  item_no: string;
+  name: string;
+  quantity: number;
+  available: number;
+  price?: string | number | null;
+  location?: string | null;
+  resources?: string | null;
+}
+
+interface Project {
+  project_id: string;
+  project_name: string;
+}
 
 export default function InventoryPage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedItem, setSelectedItem] = useState<ItemDetailsExtended | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [projectId, setProjectId] = useState("");
+  const [returnDate, setReturnDate] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const { addToCart, getTotalItems } = useCart();
   const router = useRouter();
 
   useEffect(() => {
     api<InventoryItem[]>("registry").then(setItems);
+    api<Project[]>("projects").then(setProjects);
   }, []);
 
   // Fuzzy search function
@@ -21,7 +44,6 @@ export default function InventoryPage() {
     str = str.toLowerCase();
     query = query.toLowerCase();
     
-    // Exact match gets highest score
     if (str.includes(query)) return 1;
     
     let score = 0;
@@ -31,7 +53,6 @@ export default function InventoryPage() {
     for (let i = 0; i < str.length && queryIndex < query.length; i++) {
       if (str[i] === query[queryIndex]) {
         score += 1;
-        // Bonus for consecutive matches
         if (lastMatchIndex === i - 1) {
           score += 0.5;
         }
@@ -40,8 +61,6 @@ export default function InventoryPage() {
       }
     }
     
-    // Return normalized score (0-1)
-    // Only return a score if all query characters were found
     if (queryIndex === query.length) {
       return score / (query.length * 1.5);
     }
@@ -64,8 +83,59 @@ export default function InventoryPage() {
         searchScore: maxScore
       };
     })
-    .filter(item => item.searchScore > 0.3) // Threshold for matching
-    .sort((a, b) => b.searchScore - a.searchScore); // Sort by relevance
+    .filter(item => item.searchScore > 0.3)
+    .sort((a, b) => b.searchScore - a.searchScore);
+
+  const openItemModal = async (item: InventoryItem) => {
+    try {
+      const data = await api<ItemDetailsExtended[]>(`registry?item_no=eq.${item.item_no}`);
+      if (data && data.length > 0) {
+        setSelectedItem(data[0]);
+        setQuantity(1);
+      }
+    } catch (err) {
+      console.error("Failed to load item details:", err);
+    }
+  };
+
+  const closeModal = () => {
+    setSelectedItem(null);
+    setQuantity(1);
+    setProjectId("");
+    setReturnDate("");
+  };
+
+  const handleIssue = async () => {
+    if (!projectId) {
+      alert("Please select a project");
+      return;
+    }
+
+    const payload = {
+      project_id: projectId,
+      items: [{ item_no: selectedItem!.item_no, quantity }],
+      return_date: returnDate || null,
+    };
+
+    try {
+      await api("issue", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      alert("Item issued successfully!");
+      closeModal();
+      api<InventoryItem[]>("registry").then(setItems);
+    } catch (err) {
+      alert("Failed to issue item: " + (err as Error).message);
+    }
+  };
+
+  const handleAddToCart = () => {
+    addToCart(selectedItem!.item_no, quantity);
+    alert(`Added ${quantity} x ${selectedItem!.name} to cart!`);
+    closeModal();
+  };
 
   return (
     <main style={{
@@ -78,20 +148,89 @@ export default function InventoryPage() {
         maxWidth: "1400px",
         margin: "0 auto"
       }}>
-        <h1 style={{
-          color: "#b19cd9",
-          fontSize: "2.5rem",
-          fontWeight: "600",
-          marginBottom: "2rem",
-          letterSpacing: "0.5px"
-        }}>
-          Inventory
-        </h1>
-
-        {/* Search Box */}
+        {/* Header with Cart Icon */}
         <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
           marginBottom: "2rem"
         }}>
+          <h1 style={{
+            color: "#b19cd9",
+            fontSize: "2.5rem",
+            fontWeight: "600",
+            letterSpacing: "0.5px",
+            margin: 0
+          }}>
+            Inventory
+          </h1>
+          
+          <button
+            onClick={() => router.push("/cart")}
+            style={{
+              position: "relative",
+              backgroundColor: "#2a2a2a",
+              border: "1px solid #3a3a3a",
+              borderRadius: "6px",
+              padding: "0.75rem 1rem",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              color: "#b19cd9",
+              fontSize: "1rem",
+              fontWeight: "600",
+              fontFamily: "'Montserrat', sans-serif",
+              transition: "all 0.3s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "#8b7ab8";
+              e.currentTarget.style.backgroundColor = "#2d2d2d";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "#3a3a3a";
+              e.currentTarget.style.backgroundColor = "#2a2a2a";
+            }}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="9" cy="21" r="1"/>
+              <circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            Cart
+            {getTotalItems() > 0 && (
+              <span style={{
+                position: "absolute",
+                top: "-8px",
+                right: "-8px",
+                backgroundColor: "#8b7ab8",
+                color: "white",
+                borderRadius: "50%",
+                width: "24px",
+                height: "24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "0.75rem",
+                fontWeight: "700"
+              }}>
+                {getTotalItems()}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Search Box */}
+        <div style={{ marginBottom: "2rem" }}>
           <input
             type="text"
             placeholder="Search by name or location..."
@@ -133,11 +272,11 @@ export default function InventoryPage() {
             return (
               <div
                 key={item.item_no}
-                onClick={() => !disabled && router.push(`/inventory/${item.item_no}`)}
+                onClick={() => !disabled && openItemModal(item)}
                 style={{
                   backgroundColor: "#2a2a2a",
                   border: "1px solid #3a3a3a",
-                  borderRadius: "12px",
+                  borderRadius: "6px",
                   padding: "1.5rem",
                   cursor: disabled ? "not-allowed" : "pointer",
                   opacity: disabled ? 0.5 : 1,
@@ -162,7 +301,6 @@ export default function InventoryPage() {
                   }
                 }}
               >
-                {/* Item Name */}
                 <h3 style={{
                   color: "#b19cd9",
                   fontSize: "1.125rem",
@@ -173,7 +311,6 @@ export default function InventoryPage() {
                   {item.name}
                 </h3>
 
-                {/* Details Grid */}
                 <div style={{
                   display: "flex",
                   flexDirection: "column",
@@ -213,7 +350,7 @@ export default function InventoryPage() {
                       Available
                     </span>
                     <span style={{
-                      color: item.available === 0 ? "#d66" : "#7ab87a",
+                      color: item.available === 0 ? "#c97a7a" : "#7ab87a",
                       fontSize: "0.875rem",
                       fontWeight: "700"
                     }}>
@@ -250,16 +387,15 @@ export default function InventoryPage() {
                   </div>
                 </div>
 
-                {/* Out of Stock Badge */}
                 {disabled && (
                   <div style={{
                     position: "absolute",
                     top: "1rem",
                     right: "1rem",
                     backgroundColor: "#4a3a3a",
-                    color: "#d66",
+                    color: "#c97a7a",
                     padding: "0.25rem 0.75rem",
-                    borderRadius: "4px",
+                    borderRadius: "3px",
                     fontSize: "0.75rem",
                     fontWeight: "600",
                     letterSpacing: "0.5px"
@@ -272,7 +408,6 @@ export default function InventoryPage() {
           })}
         </div>
 
-        {/* No Results Message */}
         {filteredItems.length === 0 && (
           <div style={{
             textAlign: "center",
@@ -285,6 +420,332 @@ export default function InventoryPage() {
           </div>
         )}
       </div>
+
+      {/* Modal */}
+      {selectedItem && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+            padding: "1rem"
+          }}
+          onClick={closeModal}
+        >
+          <div
+            style={{
+              backgroundColor: "rgba(42, 42, 42, 0.95)",
+              border: "1px solid #3a3a3a",
+              borderRadius: "6px",
+              padding: "2rem",
+              maxWidth: "500px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              fontFamily: "'Montserrat', sans-serif"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{
+              color: "#b19cd9",
+              fontSize: "1.5rem",
+              fontWeight: "600",
+              marginBottom: "1.5rem"
+            }}>
+              {selectedItem.name}
+            </h2>
+
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              marginBottom: "1.5rem"
+            }}>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "0.75rem",
+                backgroundColor: "#232323",
+                borderRadius: "4px"
+              }}>
+                <span style={{ color: "#888", fontSize: "0.9rem" }}>Item No</span>
+                <span style={{ color: "#c0c0c0", fontWeight: "600" }}>{selectedItem.item_no}</span>
+              </div>
+
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "0.75rem",
+                backgroundColor: "#232323",
+                borderRadius: "4px"
+              }}>
+                <span style={{ color: "#888", fontSize: "0.9rem" }}>Total Quantity</span>
+                <span style={{ color: "#c0c0c0", fontWeight: "600" }}>{selectedItem.quantity}</span>
+              </div>
+
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "0.75rem",
+                backgroundColor: "#232323",
+                borderRadius: "4px"
+              }}>
+                <span style={{ color: "#888", fontSize: "0.9rem" }}>Available</span>
+                <span style={{
+                  color: selectedItem.available === 0 ? "#c97a7a" : "#7ab87a",
+                  fontWeight: "700"
+                }}>
+                  {selectedItem.available}
+                </span>
+              </div>
+
+              {selectedItem.price && (
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "0.75rem",
+                  backgroundColor: "#232323",
+                  borderRadius: "4px"
+                }}>
+                  <span style={{ color: "#888", fontSize: "0.9rem" }}>Price</span>
+                  <span style={{ color: "#c0c0c0", fontWeight: "600" }}>{selectedItem.price}</span>
+                </div>
+              )}
+
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "0.75rem",
+                backgroundColor: "#232323",
+                borderRadius: "4px"
+              }}>
+                <span style={{ color: "#888", fontSize: "0.9rem" }}>Location</span>
+                <span style={{ color: "#c0c0c0", fontWeight: "600" }}>
+                  {selectedItem.location && selectedItem.location !== "NULL" ? selectedItem.location : "—"}
+                </span>
+              </div>
+            </div>
+
+            {/* Issue Form */}
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              marginBottom: "1.5rem",
+              paddingTop: "1rem",
+              borderTop: "1px solid #3a3a3a"
+            }}>
+              <label style={{ color: "#c0c0c0" }}>
+                <div style={{ marginBottom: "0.5rem", fontSize: "0.9rem", color: "#888" }}>Quantity</div>
+                <input
+                  type="number"
+                  min={1}
+                  max={selectedItem.available}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  style={{
+                    width: "100%",
+                    padding: "0.875rem",
+                    fontSize: "1rem",
+                    backgroundColor: "#232323",
+                    border: "1px solid #3a3a3a",
+                    borderRadius: "4px",
+                    color: "#e0e0e0",
+                    outline: "none",
+                    fontFamily: "'Montserrat', sans-serif"
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                  onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
+                />
+              </label>
+
+              <label style={{ color: "#c0c0c0" }}>
+                <div style={{ marginBottom: "0.5rem", fontSize: "0.9rem", color: "#888" }}>Project</div>
+                <select
+                  value={projectId}
+                  onChange={(e) => setProjectId(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.875rem",
+                    fontSize: "1rem",
+                    backgroundColor: "#232323",
+                    border: "1px solid #3a3a3a",
+                    borderRadius: "4px",
+                    color: "#e0e0e0",
+                    outline: "none",
+                    fontFamily: "'Montserrat', sans-serif",
+                    cursor: "pointer"
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                  onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
+                >
+                  <option value="">Select a project</option>
+                  {projects.map(project => (
+                    <option key={project.project_id} value={project.project_id}>
+                      {project.project_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={{ color: "#c0c0c0" }}>
+                <div style={{ marginBottom: "0.5rem", fontSize: "0.9rem", color: "#888" }}>Return Date (Optional)</div>
+                <input
+                  type="date"
+                  value={returnDate}
+                  onChange={(e) => setReturnDate(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.875rem",
+                    fontSize: "1rem",
+                    backgroundColor: "#232323",
+                    border: "1px solid #3a3a3a",
+                    borderRadius: "4px",
+                    color: "#e0e0e0",
+                    outline: "none",
+                    fontFamily: "'Montserrat', sans-serif"
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                  onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
+                />
+              </label>
+            </div>
+
+            {/* Buttons */}
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.75rem"
+            }}>
+              <button
+                onClick={handleIssue}
+                disabled={selectedItem.available === 0}
+                style={{
+                  width: "100%",
+                  padding: "0.875rem",
+                  fontSize: "1rem",
+                  fontWeight: "600",
+                  backgroundColor: selectedItem.available === 0 ? "#3a3a3a" : "#6b9b6b",
+                  color: selectedItem.available === 0 ? "#666" : "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: selectedItem.available === 0 ? "not-allowed" : "pointer",
+                  transition: "all 0.3s ease",
+                  fontFamily: "'Montserrat', sans-serif"
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedItem.available > 0) {
+                    e.currentTarget.style.backgroundColor = "#5d8a5d";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedItem.available > 0) {
+                    e.currentTarget.style.backgroundColor = "#6b9b6b";
+                  }
+                }}
+              >
+                {selectedItem.available === 0 ? "Out of Stock" : "Issue Item"}
+              </button>
+
+              <button
+                onClick={handleAddToCart}
+                disabled={selectedItem.available === 0}
+                style={{
+                  width: "100%",
+                  padding: "0.875rem",
+                  fontSize: "1rem",
+                  fontWeight: "600",
+                  backgroundColor: selectedItem.available === 0 ? "#3a3a3a" : "#8b7ab8",
+                  color: selectedItem.available === 0 ? "#666" : "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: selectedItem.available === 0 ? "not-allowed" : "pointer",
+                  transition: "all 0.3s ease",
+                  fontFamily: "'Montserrat', sans-serif"
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedItem.available > 0) {
+                    e.currentTarget.style.backgroundColor = "#7a69a7";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedItem.available > 0) {
+                    e.currentTarget.style.backgroundColor = "#8b7ab8";
+                  }
+                }}
+              >
+                Add to Cart
+              </button>
+
+              <button
+                onClick={closeModal}
+                style={{
+                  width: "100%",
+                  padding: "0.875rem",
+                  fontSize: "1rem",
+                  fontWeight: "600",
+                  backgroundColor: "transparent",
+                  color: "#888",
+                  border: "1px solid #3a3a3a",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                  fontFamily: "'Montserrat', sans-serif"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#8b7ab8";
+                  e.currentTarget.style.color = "#b19cd9";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#3a3a3a";
+                  e.currentTarget.style.color = "#888";
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Resources Link */}
+            {selectedItem.resources && selectedItem.resources !== "NULL" && (
+              <div style={{
+                marginTop: "1.5rem",
+                paddingTop: "1rem",
+                borderTop: "1px solid #3a3a3a",
+                textAlign: "center"
+              }}>
+                <a
+                  href={selectedItem.resources}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: "#b19cd9",
+                    fontSize: "0.9rem",
+                    textDecoration: "none",
+                    borderBottom: "1px dotted #b19cd9",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    fontFamily: "'Montserrat', sans-serif"
+                  }}
+                >
+                  Resources
+                  <span style={{ fontSize: "1.1rem" }}>↗</span>
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -1,5 +1,3 @@
-// app/cart/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,7 +29,6 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
-    // Fetch details for all items in cart
     async function fetchItemDetails() {
       for (const item of items) {
         if (!itemDetails[item.item_no]) {
@@ -97,168 +94,316 @@ export default function CartPage() {
   }
 
   return (
-    <main style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
-      <h1>Cart ({getTotalItems()} items)</h1>
+    <main style={{
+      minHeight: "100vh",
+      backgroundColor: "#1a1a1a",
+      padding: "2rem",
+      fontFamily: "'Montserrat', sans-serif"
+    }}>
+      <div style={{
+        maxWidth: "900px",
+        margin: "0 auto"
+      }}>
+        <h1 style={{
+          color: "#b19cd9",
+          fontSize: "2.5rem",
+          fontWeight: "600",
+          marginBottom: "2rem",
+          letterSpacing: "0.5px"
+        }}>
+          Cart ({getTotalItems()} items)
+        </h1>
 
-      {items.length === 0 ? (
-        <div>
-          <p>Your cart is empty.</p>
-          <button
-            onClick={() => router.push("/inventory")}
-            style={{
-              padding: "0.75rem 1.5rem",
-              backgroundColor: "#2196F3",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              marginTop: "1rem",
-            }}
-          >
-            Browse Inventory
-          </button>
-        </div>
-      ) : (
-        <>
-          <div style={{ marginBottom: "2rem" }}>
-            <h3>Items in Cart</h3>
-            {items.map(item => {
-              const details = itemDetails[item.item_no];
-              return (
-                <div
-                  key={item.item_no}
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "1rem",
-                    borderRadius: "4px",
-                    marginBottom: "1rem",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <div>
-                    <strong>{details?.name || `Item #${item.item_no}`}</strong>
-                    <div style={{ fontSize: "0.9em", color: "#666" }}>
-                      Item No: {item.item_no}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-                    <input
-                      type="number"
-                      min={1}
-                      value={item.quantity}
-                      onChange={e => {
-                        const newQty = Number(e.target.value);
-                        if (newQty > 0) {
-                          updateQuantity(item.item_no, newQty);
-                        }
-                      }}
+        {items.length === 0 ? (
+          <div style={{
+            backgroundColor: "#2a2a2a",
+            border: "1px solid #3a3a3a",
+            borderRadius: "6px",
+            padding: "3rem",
+            textAlign: "center"
+          }}>
+            <p style={{
+              color: "#888",
+              fontSize: "1.125rem",
+              marginBottom: "1.5rem"
+            }}>
+              Your cart is empty.
+            </p>
+            <button
+              onClick={() => router.push("/inventory")}
+              style={{
+                padding: "0.875rem 1.5rem",
+                backgroundColor: "#8b7ab8",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "1rem",
+                fontWeight: "600",
+                fontFamily: "'Montserrat', sans-serif",
+                transition: "all 0.3s ease"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#7a69a7"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#8b7ab8"}
+            >
+              Browse Inventory
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Cart Items */}
+            <div style={{ marginBottom: "2rem" }}>
+              <h3 style={{
+                color: "#b19cd9",
+                fontSize: "1.25rem",
+                fontWeight: "600",
+                marginBottom: "1rem"
+              }}>
+                Items in Cart
+              </h3>
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1rem"
+              }}>
+                {items.map(item => {
+                  const details = itemDetails[item.item_no];
+                  return (
+                    <div
+                      key={item.item_no}
                       style={{
-                        width: "80px",
-                        padding: "0.5rem",
-                      }}
-                    />
-                    <button
-                      onClick={() => removeFromCart(item.item_no)}
-                      style={{
-                        padding: "0.5rem 1rem",
-                        backgroundColor: "#f44336",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
+                        backgroundColor: "#2a2a2a",
+                        border: "1px solid #3a3a3a",
+                        borderRadius: "6px",
+                        padding: "1.25rem",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "1rem",
+                        flexWrap: "wrap"
                       }}
                     >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div
-            style={{
-              border: "2px solid #4CAF50",
-              padding: "1.5rem",
-              borderRadius: "8px",
-              backgroundColor: "#f9f9f9",
-            }}
-          >
-            <h3>Issue Details</h3>
-
-            <label style={{ display: "block", marginBottom: "1rem" }}>
-              Project:
-              <select
-                value={projectId}
-                onChange={e => setProjectId(e.target.value)}
-                required
-                style={{
-                  width: "100%",
-                  padding: "0.5rem",
-                  marginTop: "0.25rem",
-                }}
-              >
-                <option value="">Select a project</option>
-                {projects.map(project => (
-                  <option key={project.project_id} value={project.project_id}>
-                    {project.project_name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label style={{ display: "block", marginBottom: "1rem" }}>
-              Return Date (optional):
-              <input
-                type="date"
-                value={returnDate}
-                onChange={e => setReturnDate(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "0.5rem",
-                  marginTop: "0.25rem",
-                }}
-              />
-            </label>
-
-            <div style={{ display: "flex", gap: "1rem" }}>
-              <button
-                onClick={handleIssueAll}
-                style={{
-                  flex: 1,
-                  padding: "1rem",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: "bold",
-                }}
-              >
-                Issue All Items
-              </button>
-              <button
-                onClick={handleCancel}
-                style={{
-                  flex: 1,
-                  padding: "1rem",
-                  backgroundColor: "#f44336",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                }}
-              >
-                Cancel & Clear Cart
-              </button>
+                      <div style={{ flex: "1 1 200px" }}>
+                        <strong style={{
+                          color: "#b19cd9",
+                          fontSize: "1.125rem",
+                          display: "block",
+                          marginBottom: "0.25rem"
+                        }}>
+                          {details?.name || `Item #${item.item_no}`}
+                        </strong>
+                        <div style={{
+                          fontSize: "0.875rem",
+                          color: "#888"
+                        }}>
+                          Item No: {item.item_no}
+                        </div>
+                      </div>
+                      <div style={{
+                        display: "flex",
+                        gap: "1rem",
+                        alignItems: "center",
+                        flexWrap: "wrap"
+                      }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                          <label style={{
+                            color: "#888",
+                            fontSize: "0.75rem",
+                            fontWeight: "500"
+                          }}>
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={item.quantity}
+                            onChange={e => {
+                              const newQty = Number(e.target.value);
+                              if (newQty > 0) {
+                                updateQuantity(item.item_no, newQty);
+                              }
+                            }}
+                            style={{
+                              width: "100px",
+                              padding: "0.75rem",
+                              fontSize: "1rem",
+                              backgroundColor: "#232323",
+                              border: "1px solid #3a3a3a",
+                              borderRadius: "4px",
+                              color: "#e0e0e0",
+                              outline: "none",
+                              fontFamily: "'Montserrat', sans-serif"
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                            onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
+                          />
+                        </div>
+                        <button
+                          onClick={() => removeFromCart(item.item_no)}
+                          style={{
+                            padding: "0.75rem 1.25rem",
+                            backgroundColor: "#c97a7a",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "0.9rem",
+                            fontWeight: "600",
+                            fontFamily: "'Montserrat', sans-serif",
+                            transition: "all 0.3s ease",
+                            alignSelf: "flex-end"
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#b86b6b"}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#c97a7a"}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </>
-      )}
+
+            {/* Issue Details Form */}
+            <div
+              style={{
+                backgroundColor: "#2a2a2a",
+                border: "1px solid #3a3a3a",
+                borderRadius: "6px",
+                padding: "1.5rem"
+              }}
+            >
+              <h3 style={{
+                color: "#b19cd9",
+                fontSize: "1.25rem",
+                fontWeight: "600",
+                marginBottom: "1.5rem"
+              }}>
+                Issue Details
+              </h3>
+
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1rem",
+                marginBottom: "1.5rem"
+              }}>
+                <label style={{ color: "#c0c0c0" }}>
+                  <div style={{
+                    marginBottom: "0.5rem",
+                    fontSize: "0.9rem",
+                    color: "#888"
+                  }}>
+                    Project
+                  </div>
+                  <select
+                    value={projectId}
+                    onChange={e => setProjectId(e.target.value)}
+                    required
+                    style={{
+                      width: "100%",
+                      padding: "0.875rem",
+                      fontSize: "1rem",
+                      backgroundColor: "#232323",
+                      border: "1px solid #3a3a3a",
+                      borderRadius: "4px",
+                      color: "#e0e0e0",
+                      outline: "none",
+                      fontFamily: "'Montserrat', sans-serif",
+                      cursor: "pointer"
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                    onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
+                  >
+                    <option value="">Select a project</option>
+                    {projects.map(project => (
+                      <option key={project.project_id} value={project.project_id}>
+                        {project.project_name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label style={{ color: "#c0c0c0" }}>
+                  <div style={{
+                    marginBottom: "0.5rem",
+                    fontSize: "0.9rem",
+                    color: "#888"
+                  }}>
+                    Return Date (Optional)
+                  </div>
+                  <input
+                    type="date"
+                    value={returnDate}
+                    onChange={e => setReturnDate(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.875rem",
+                      fontSize: "1rem",
+                      backgroundColor: "#232323",
+                      border: "1px solid #3a3a3a",
+                      borderRadius: "4px",
+                      color: "#e0e0e0",
+                      outline: "none",
+                      fontFamily: "'Montserrat', sans-serif"
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                    onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
+                  />
+                </label>
+              </div>
+
+              <div style={{
+                display: "flex",
+                gap: "1rem",
+                flexWrap: "wrap"
+              }}>
+                <button
+                  onClick={handleIssueAll}
+                  style={{
+                    flex: "1 1 200px",
+                    padding: "0.875rem",
+                    backgroundColor: "#6b9b6b",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "1rem",
+                    fontWeight: "600",
+                    fontFamily: "'Montserrat', sans-serif",
+                    transition: "all 0.3s ease"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#5d8a5d"}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#6b9b6b"}
+                >
+                  Issue All Items
+                </button>
+                <button
+                  onClick={handleCancel}
+                  style={{
+                    flex: "1 1 200px",
+                    padding: "0.875rem",
+                    backgroundColor: "#c97a7a",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontSize: "1rem",
+                    fontWeight: "600",
+                    fontFamily: "'Montserrat', sans-serif",
+                    transition: "all 0.3s ease"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#b86b6b"}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#c97a7a"}
+                >
+                  Cancel & Clear Cart
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </main>
   );
 }
