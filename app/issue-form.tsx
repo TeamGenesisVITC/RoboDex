@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { api } from "./lib/api";
 import { useCart } from "./context/CartContext";
+import { useRouter } from "next/navigation";
 
 interface Project {
   project_id: string;
@@ -14,26 +15,26 @@ interface Project {
 
 interface Props {
   item_no: string;
+  itemName?: string;
   onClose: () => void;
 }
 
-export default function IssueForm({ item_no, onClose }: Props) {
+export default function IssueForm({ item_no, itemName, onClose }: Props) {
   const [quantity, setQuantity] = useState<number>(1);
   const [returnDate, setReturnDate] = useState<string>("");
   const [projectId, setProjectId] = useState<string>("");
   const [projects, setProjects] = useState<Project[]>([]);
   const { addToCart } = useCart();
+  const router = useRouter();
 
   useEffect(() => {
     // Fetch available projects
     api<Project[]>("projects").then(setProjects);
   }, []);
 
-  async function handleIssueNow(e: React.FormEvent) {
-    e.preventDefault();
-
+  async function handleIssueNow() {
     if (!projectId) {
-      alert("Please select a project");
+      alert("Please select a project to issue now");
       return;
     }
 
@@ -62,9 +63,7 @@ export default function IssueForm({ item_no, onClose }: Props) {
     }
   }
 
-  function handleAddToCart(e: React.FormEvent) {
-    e.preventDefault();
-
+  function handleAddToCart() {
     if (quantity <= 0) {
       alert("Quantity must be greater than 0");
       return;
@@ -76,24 +75,11 @@ export default function IssueForm({ item_no, onClose }: Props) {
   }
 
   return (
-    <form className="modal">
-      <h3>Issue Item #{item_no}</h3>
-
-      <label>
-        Project:
-        <select
-          value={projectId}
-          onChange={e => setProjectId(e.target.value)}
-          required
-        >
-          <option value="">Select a project</option>
-          {projects.map(project => (
-            <option key={project.project_id} value={project.project_id}>
-              {project.project_name}
-            </option>
-          ))}
-        </select>
-      </label>
+    <div className="modal">
+      <h3>Issue {itemName || `Item #${item_no}`}</h3>
+      {itemName && (
+        <p style={{ fontSize: "0.9em", color: "#666" }}>Item No: {item_no}</p>
+      )}
 
       <label>
         Quantity:
@@ -103,7 +89,27 @@ export default function IssueForm({ item_no, onClose }: Props) {
           value={quantity}
           onChange={e => setQuantity(Number(e.target.value))}
           required
+          style={{
+            width: "100%",
+            padding: "0.5rem",
+            marginTop: "0.25rem",
+          }}
         />
+      </label>
+
+      <label>
+        Project (required for Issue Now):
+        <select
+          value={projectId}
+          onChange={e => setProjectId(e.target.value)}
+        >
+          <option value="">Select a project</option>
+          {projects.map(project => (
+            <option key={project.project_id} value={project.project_id}>
+              {project.project_name}
+            </option>
+          ))}
+        </select>
       </label>
 
       <label>
@@ -164,6 +170,6 @@ export default function IssueForm({ item_no, onClose }: Props) {
       >
         Cancel
       </button>
-    </form>
+    </div>
   );
 }

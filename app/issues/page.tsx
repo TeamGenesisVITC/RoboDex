@@ -18,6 +18,11 @@ interface IssueItemRaw {
   returned_quantity: number;
 }
 
+interface ItemDetails {
+  item_no: string;
+  name: string;
+}
+
 interface GroupedIssue {
   issue_id: string;
   project_id: string;
@@ -28,6 +33,7 @@ interface GroupedIssue {
     item_no: string;
     quantity: number;
     returned_quantity: number;
+    name?: string;
   }[];
 }
 
@@ -36,6 +42,7 @@ export default function IssuesPage() {
   const [selectedIssue, setSelectedIssue] = useState<GroupedIssue | null>(null);
   const [showPartialReturn, setShowPartialReturn] = useState(false);
   const [partialReturns, setPartialReturns] = useState<{ [key: string]: number }>({});
+  const [itemNames, setItemNames] = useState<{ [key: string]: string }>({});
 
   function groupIssues(raw: IssueItemRaw[]): GroupedIssue[] {
     const map = new Map<string, GroupedIssue>();
@@ -73,6 +80,24 @@ export default function IssuesPage() {
         const grouped = groupIssues(data);
         console.log("Grouped issues:", grouped);
         setIssues(grouped);
+
+        // Fetch item names for all unique items
+        const uniqueItemNos = new Set<string>();
+        data.forEach(item => uniqueItemNos.add(item.item_no));
+        
+        for (const item_no of uniqueItemNos) {
+          try {
+            const itemData = await api<ItemDetails[]>(`registry?item_no=eq.${item_no}`);
+            if (itemData && itemData.length > 0) {
+              setItemNames(prev => ({
+                ...prev,
+                [item_no]: itemData[0].name,
+              }));
+            }
+          } catch (err) {
+            console.error(`Failed to fetch name for item ${item_no}:`, err);
+          }
+        }
       } catch (err) {
         console.error("Failed to load issues:", err);
         setIssues([]);
@@ -92,6 +117,7 @@ export default function IssuesPage() {
       setIssues([]);
     }
   }
+
 
   async function handleFullReturn(issue_id: string) {
     if (!confirm("Return this entire issue?")) return;
@@ -185,7 +211,7 @@ export default function IssuesPage() {
                     <ul>
                       {issue.items.map((item, idx) => (
                         <li key={idx}>
-                          Item #{item.item_no} - Quantity: {item.quantity}
+                          {itemNames[item.item_no] || `Item #${item.item_no}`} - Quantity: {item.quantity}
                           {item.returned_quantity > 0 && (
                             <span> (Returned: {item.returned_quantity})</span>
                           )}
@@ -263,10 +289,11 @@ export default function IssuesPage() {
 
             {selectedIssue.items.map(item => {
               const available = item.quantity - item.returned_quantity;
+              const itemName = itemNames[item.item_no] || `Item #${item.item_no}`;
               return (
                 <div key={item.item_no} style={{ marginBottom: "1rem" }}>
                   <label>
-                    Item #{item.item_no} (Available to return: {available}):
+                    {itemName} (Available to return: {available}):
                     <input
                       type="number"
                       min={0}

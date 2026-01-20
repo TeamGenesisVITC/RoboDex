@@ -123,6 +123,20 @@ class Default(WorkerEntrypoint):
                 data = await sb_get("inventory?select=*", SUPABASE_URL, SUPABASE_KEY)
                 return Response.json(data, headers=cors_headers)
 
+            # ---- GET REGISTRY (with optional filter) ----
+            if path.startswith("registry") and method == "GET":
+                # Parse query string for filters
+                query_params = ""
+                if "?" in request.url:
+                    query_params = "?" + request.url.split("?")[1]
+                
+                data = await sb_get(
+                    f"inventory{query_params}&select=*",
+                    SUPABASE_URL,
+                    SUPABASE_KEY
+                )
+                return Response.json(data, headers=cors_headers)
+
             # ---- PROJECTS ----
             if path == "projects" and method == "GET":
                 data = await sb_get("projects?select=*", SUPABASE_URL, SUPABASE_KEY)
@@ -164,6 +178,34 @@ class Default(WorkerEntrypoint):
                     "p_items": body["items"]
                 }, SUPABASE_URL, SUPABASE_KEY)
                 return Response.json({"success": True}, headers=cors_headers)
+            
+            # ---- UPDATE PASSWORD ----
+            if path == "update-password" and method == "POST":
+                body = await request.json()
+                
+                # Verify current password by attempting login
+                login_res = await sb_get(
+                    f"members?name=eq.{payload['name']}&password=eq.{body['current_password']}&select=member_id,name",
+                    SUPABASE_URL,
+                    SUPABASE_KEY
+                )
+                
+                if not login_res:
+                    return Response("Current password is incorrect", status=401, headers=cors_headers)
+                
+                # Current password is correct, update to new password using RPC
+                await sb_post("rpc/update_member_password", {
+                    "p_member_id": payload["member_id"],
+                    "p_new_password": body["new_password"]
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                # Generate new JWT with updated credentials
+                new_token = sign_jwt(login_res[0], JWT_SECRET)
+                
+                return Response.json({
+                    "success": True,
+                    "token": new_token
+                }, headers=cors_headers)
 
             return Response("Not Found", status=404, headers=cors_headers)
 

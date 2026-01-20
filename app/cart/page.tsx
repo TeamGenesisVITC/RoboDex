@@ -12,16 +12,48 @@ interface Project {
   project_name: string;
 }
 
+interface ItemDetails {
+  item_no: string;
+  name: string;
+  available: number;
+}
+
 export default function CartPage() {
   const { items, updateQuantity, removeFromCart, clearCart, getTotalItems } = useCart();
   const [projectId, setProjectId] = useState<string>("");
   const [returnDate, setReturnDate] = useState<string>("");
   const [projects, setProjects] = useState<Project[]>([]);
+  const [itemDetails, setItemDetails] = useState<{ [key: string]: ItemDetails }>({});
   const router = useRouter();
 
   useEffect(() => {
     api<Project[]>("projects").then(setProjects);
   }, []);
+
+  useEffect(() => {
+    // Fetch details for all items in cart
+    async function fetchItemDetails() {
+      for (const item of items) {
+        if (!itemDetails[item.item_no]) {
+          try {
+            const data = await api<ItemDetails[]>(`registry?item_no=eq.${item.item_no}`);
+            if (data && data.length > 0) {
+              setItemDetails(prev => ({
+                ...prev,
+                [item.item_no]: data[0],
+              }));
+            }
+          } catch (err) {
+            console.error(`Failed to load details for item ${item.item_no}:`, err);
+          }
+        }
+      }
+    }
+
+    if (items.length > 0) {
+      fetchItemDetails();
+    }
+  }, [items, itemDetails]);
 
   async function handleIssueAll() {
     if (!projectId) {
@@ -90,54 +122,60 @@ export default function CartPage() {
         <>
           <div style={{ marginBottom: "2rem" }}>
             <h3>Items in Cart</h3>
-            {items.map(item => (
-              <div
-                key={item.item_no}
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "1rem",
-                  borderRadius: "4px",
-                  marginBottom: "1rem",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div>
-                  <strong>Item #{item.item_no}</strong>
+            {items.map(item => {
+              const details = itemDetails[item.item_no];
+              return (
+                <div
+                  key={item.item_no}
+                  style={{
+                    border: "1px solid #ccc",
+                    padding: "1rem",
+                    borderRadius: "4px",
+                    marginBottom: "1rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <strong>{details?.name || `Item #${item.item_no}`}</strong>
+                    <div style={{ fontSize: "0.9em", color: "#666" }}>
+                      Item No: {item.item_no}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                    <input
+                      type="number"
+                      min={1}
+                      value={item.quantity}
+                      onChange={e => {
+                        const newQty = Number(e.target.value);
+                        if (newQty > 0) {
+                          updateQuantity(item.item_no, newQty);
+                        }
+                      }}
+                      style={{
+                        width: "80px",
+                        padding: "0.5rem",
+                      }}
+                    />
+                    <button
+                      onClick={() => removeFromCart(item.item_no)}
+                      style={{
+                        padding: "0.5rem 1rem",
+                        backgroundColor: "#f44336",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-                  <input
-                    type="number"
-                    min={1}
-                    value={item.quantity}
-                    onChange={e => {
-                      const newQty = Number(e.target.value);
-                      if (newQty > 0) {
-                        updateQuantity(item.item_no, newQty);
-                      }
-                    }}
-                    style={{
-                      width: "80px",
-                      padding: "0.5rem",
-                    }}
-                  />
-                  <button
-                    onClick={() => removeFromCart(item.item_no)}
-                    style={{
-                      padding: "0.5rem 1rem",
-                      backgroundColor: "#f44336",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div
