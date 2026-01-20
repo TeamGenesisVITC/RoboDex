@@ -5,7 +5,6 @@
 import { useState, useEffect } from "react";
 import { api } from "./lib/api";
 import { useCart } from "./context/CartContext";
-import { useRouter } from "next/navigation";
 
 interface Project {
   project_id: string;
@@ -24,7 +23,6 @@ export default function IssueForm({ item_no, onClose }: Props) {
   const [projectId, setProjectId] = useState<string>("");
   const [projects, setProjects] = useState<Project[]>([]);
   const { addToCart } = useCart();
-  const router = useRouter();
 
   useEffect(() => {
     // Fetch available projects

@@ -37,25 +37,6 @@ export default function IssuesPage() {
   const [showPartialReturn, setShowPartialReturn] = useState(false);
   const [partialReturns, setPartialReturns] = useState<{ [key: string]: number }>({});
 
-  useEffect(() => {
-    loadIssues();
-  }, []);
-
-  async function loadIssues() {
-    try {
-      const data = await api<IssueItemRaw[]>("my-issues");
-      console.log("Raw issues data:", data);
-      
-      // Group by issue_id
-      const grouped = groupIssues(data);
-      console.log("Grouped issues:", grouped);
-      setIssues(grouped);
-    } catch (err) {
-      console.error("Failed to load issues:", err);
-      setIssues([]);
-    }
-  }
-
   function groupIssues(raw: IssueItemRaw[]): GroupedIssue[] {
     const map = new Map<string, GroupedIssue>();
 
@@ -80,6 +61,36 @@ export default function IssuesPage() {
     });
 
     return Array.from(map.values());
+  }
+
+  useEffect(() => {
+    async function fetchIssues() {
+      try {
+        const data = await api<IssueItemRaw[]>("my-issues");
+        console.log("Raw issues data:", data);
+        
+        // Group by issue_id
+        const grouped = groupIssues(data);
+        console.log("Grouped issues:", grouped);
+        setIssues(grouped);
+      } catch (err) {
+        console.error("Failed to load issues:", err);
+        setIssues([]);
+      }
+    }
+    
+    fetchIssues();
+  }, []);
+
+  async function loadIssues() {
+    try {
+      const data = await api<IssueItemRaw[]>("my-issues");
+      const grouped = groupIssues(data);
+      setIssues(grouped);
+    } catch (err) {
+      console.error("Failed to load issues:", err);
+      setIssues([]);
+    }
   }
 
   async function handleFullReturn(issue_id: string) {

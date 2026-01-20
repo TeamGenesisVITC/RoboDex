@@ -21,29 +21,27 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
+  // Initialize state from localStorage immediately
+  const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    
     const saved = localStorage.getItem("robodex_cart");
     if (saved) {
       try {
-        setItems(JSON.parse(saved));
+        return JSON.parse(saved);
       } catch (err) {
         console.error("Failed to load cart:", err);
+        return [];
       }
     }
-    setIsHydrated(true);
-  }, []);
+    return [];
+  });
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem("robodex_cart", JSON.stringify(items));
-      console.log("Cart saved:", items);
-    }
-  }, [items, isHydrated]);
+    localStorage.setItem("robodex_cart", JSON.stringify(items));
+    console.log("Cart saved:", items);
+  }, [items]);
 
   const addToCart = (item_no: string, quantity: number) => {
     if (quantity <= 0) return;
