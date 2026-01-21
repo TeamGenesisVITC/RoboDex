@@ -207,6 +207,51 @@ class Default(WorkerEntrypoint):
                     "token": new_token
                 }, headers=cors_headers)
             
+            # ---- GET PROJECT DETAILS ----
+            if path.startswith("projects/") and method == "GET":
+                project_id = path.split("/")[1]
+                
+                # Get project info
+                project = await sb_get(
+                    f"projects?project_id=eq.{project_id}&select=*",
+                    SUPABASE_URL,
+                    SUPABASE_KEY
+                )
+                
+                if not project:
+                    return Response("Project not found", status=404, headers=cors_headers)
+                
+                return Response.json(project[0], headers=cors_headers)
+
+            # ---- GET PROJECT ANALYTICS ----
+            if path.startswith("projects/") and path.endswith("/analytics") and method == "GET":
+                project_id = path.split("/")[1]
+                
+                data = await sb_post("rpc/get_project_items", {
+                    "p_project_id": project_id
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                return Response.json(result, headers=cors_headers)
+            
+            # ---- GET GITHUB ISSUES ----
+            if path.startswith("github/") and method == "GET":
+                repo = path.split("/", 1)[1]  # e.g., "owner/repo"
+                
+                gh_response = await pyfetch(
+                    f"https://api.github.com/repos/{repo}/issues?state=open",
+                    headers={
+                        "Accept": "application/vnd.github.v3+json",
+                        "User-Agent": "Robodex-App"
+                    }
+                )
+                
+                if not gh_response.ok:
+                    return Response("Failed to fetch GitHub data", status=500, headers=cors_headers)
+                
+                issues = await gh_response.json()
+                return Response.json(issues, headers=cors_headers)
+            
             if path == "me" and method == "GET":
                 # payload already contains member_id and name from the JWT
                 return Response.json({
