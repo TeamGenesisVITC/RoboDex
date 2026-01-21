@@ -80,12 +80,19 @@ export default function IssuesPage() {
         const data = await api<IssueItemRaw[]>("my-issues");
         console.log("Raw issues data:", data);
         
-        // Group by issue_id
         const grouped = groupIssues(data);
         console.log("Grouped issues:", grouped);
-        setIssues(grouped);
+        
+        // Sort: active issues first, then inactive, both in ascending order of issue date
+        const sorted = grouped.sort((a, b) => {
+          if (a.returned !== b.returned) {
+            return a.returned ? 1 : -1; // Active (not returned) first
+          }
+          return new Date(a.issued_date).getTime() - new Date(b.issued_date).getTime();
+        });
+        
+        setIssues(sorted);
 
-        // Fetch item names for all unique items
         const uniqueItemNos = new Set<string>();
         data.forEach(item => uniqueItemNos.add(item.item_no));
         
@@ -115,7 +122,16 @@ export default function IssuesPage() {
     try {
       const data = await api<IssueItemRaw[]>("my-issues");
       const grouped = groupIssues(data);
-      setIssues(grouped);
+      
+      // Sort: active issues first, then inactive, both in ascending order of issue date
+      const sorted = grouped.sort((a, b) => {
+        if (a.returned !== b.returned) {
+          return a.returned ? 1 : -1; // Active (not returned) first
+        }
+        return new Date(a.issued_date).getTime() - new Date(b.issued_date).getTime();
+      });
+      
+      setIssues(sorted);
     } catch (err) {
       console.error("Failed to load issues:", err);
       setIssues([]);
@@ -175,7 +191,6 @@ export default function IssuesPage() {
   }
 
   function handleReissue(issue: GroupedIssue) {
-    // Add all items from this issue to cart
     issue.items.forEach(item => {
       addToCart(item.item_no, item.quantity);
     });
@@ -185,201 +200,479 @@ export default function IssuesPage() {
   }
 
   return (
-    <main style={{ padding: "2rem" }}>
-      <h1>My Issues</h1>
+    <main style={{
+      minHeight: "100vh",
+      backgroundColor: "#1a1a1a",
+      padding: "2rem",
+      fontFamily: "'Montserrat', sans-serif"
+    }}>
+      <div style={{
+        maxWidth: "1200px",
+        margin: "0 auto"
+      }}>
+        <h1 style={{
+          color: "#7944da",
+          fontSize: "2.5rem",
+          fontWeight: "600",
+          marginBottom: "2rem",
+          letterSpacing: "0.5px"
+        }}>
+          My Issues
+        </h1>
 
-      {issues.length === 0 ? (
-        <p>No issues found.</p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {issues.map(issue => (
-            <div
-              key={issue.issue_id}
-              style={{
-                border: "1px solid #ccc",
-                padding: "1rem",
-                borderRadius: "8px",
-                opacity: issue.returned ? 0.5 : 1,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
-                <div>
-                  <h3>Issue #{issue.issue_id.substring(0, 8)}...</h3>
-                  <p>
-                    <strong>Issue Date:</strong>{" "}
-                    {new Date(issue.issued_date).toLocaleDateString()}
-                  </p>
-                  {issue.return_date && (
-                    <p>
-                      <strong>Expected Return:</strong>{" "}
-                      {new Date(issue.return_date).toLocaleDateString()}
-                    </p>
-                  )}
-                  <p>
-                    <strong>Status:</strong> {issue.returned ? "Returned" : "Active"}
-                  </p>
+        {issues.length === 0 ? (
+          <div style={{
+            backgroundColor: "#2a2a2a",
+            border: "1px solid #3a3a3a",
+            borderRadius: "6px",
+            padding: "3rem",
+            textAlign: "center"
+          }}>
+            <p style={{
+              color: "#888",
+              fontSize: "1.125rem"
+            }}>
+              No issues found.
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem"
+          }}>
+            {issues.map(issue => (
+              <div
+                key={issue.issue_id}
+                style={{
+                  backgroundColor: "#2a2a2a",
+                  border: "1px solid #3a3a3a",
+                  borderRadius: "6px",
+                  padding: "1.5rem",
+                  opacity: issue.returned ? 0.6 : 1,
+                  transition: "all 0.3s ease"
+                }}
+              >
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "start",
+                  flexWrap: "wrap",
+                  gap: "1.5rem"
+                }}>
+                  <div style={{ flex: "1 1 300px" }}>
+                    <h3 style={{
+                      color: "#7944da",
+                      fontSize: "1.25rem",
+                      fontWeight: "600",
+                      marginBottom: "1rem"
+                    }}>
+                      Issue #{issue.issue_id.substring(0, 8)}...
+                    </h3>
+                    
+                    <div style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                      marginBottom: "1rem"
+                    }}>
+                      <div style={{
+                        display: "flex",
+                        gap: "0.5rem"
+                      }}>
+                        <span style={{
+                          color: "#888",
+                          fontSize: "0.9rem"
+                        }}>Issue Date:</span>
+                        <span style={{
+                          color: "#c0c0c0",
+                          fontSize: "0.9rem",
+                          fontWeight: "600"
+                        }}>
+                          {new Date(issue.issued_date).toLocaleDateString()}
+                        </span>
+                      </div>
 
-                  <div style={{ marginTop: "1rem" }}>
-                    <strong>Items:</strong>
-                    <ul>
-                      {issue.items.map((item, idx) => (
-                        <li key={idx}>
-                          {itemNames[item.item_no] || `Item #${item.item_no}`} - Quantity: {item.quantity}
-                          {item.returned_quantity > 0 && (
-                            <span> (Returned: {item.returned_quantity})</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                      {issue.return_date && (
+                        <div style={{
+                          display: "flex",
+                          gap: "0.5rem"
+                        }}>
+                          <span style={{
+                            color: "#888",
+                            fontSize: "0.9rem"
+                          }}>Expected Return:</span>
+                          <span style={{
+                            color: "#c0c0c0",
+                            fontSize: "0.9rem",
+                            fontWeight: "600"
+                          }}>
+                            {new Date(issue.return_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+
+                      <div style={{
+                        display: "flex",
+                        gap: "0.5rem"
+                      }}>
+                        <span style={{
+                          color: "#888",
+                          fontSize: "0.9rem"
+                        }}>Status:</span>
+                        <span style={{
+                          color: issue.returned ? "#c97a7a" : "#7ab87a",
+                          fontSize: "0.9rem",
+                          fontWeight: "700"
+                        }}>
+                          {issue.returned ? "Returned" : "Active"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      backgroundColor: "#232323",
+                      padding: "1rem",
+                      borderRadius: "4px",
+                      border: "1px solid #3a3a3a"
+                    }}>
+                      <strong style={{
+                        color: "#7944da",
+                        fontSize: "0.95rem",
+                        display: "block",
+                        marginBottom: "0.75rem"
+                      }}>Items:</strong>
+                      <ul style={{
+                        listStyle: "none",
+                        padding: 0,
+                        margin: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.5rem"
+                      }}>
+                        {issue.items.map((item, idx) => (
+                          <li key={idx} style={{
+                            color: "#c0c0c0",
+                            fontSize: "0.9rem",
+                            paddingLeft: "1rem",
+                            position: "relative"
+                          }}>
+                            <span style={{
+                              position: "absolute",
+                              left: 0,
+                              color: "#7944da"
+                            }}>•</span>
+                            <span style={{ color: "#e0e0e0" }}>
+                              {itemNames[item.item_no] || `Item #${item.item_no}`}
+                            </span>
+                            {" - "}
+                            <span style={{ color: "#888" }}>Qty:</span> {item.quantity}
+                            {item.returned_quantity > 0 && (
+                              <span style={{
+                                color: "#c97a7a",
+                                marginLeft: "0.5rem"
+                              }}>
+                                (Returned: {item.returned_quantity})
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: "flex",
+                    gap: "0.75rem",
+                    flexDirection: "column",
+                    minWidth: "150px"
+                  }}>
+                    {!issue.returned ? (
+                      <>
+                        <button
+                          onClick={() => handleFullReturn(issue.issue_id)}
+                          style={{
+                            padding: "0.75rem 1.25rem",
+                            cursor: "pointer",
+                            backgroundColor: "#6b9b6b",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            fontSize: "0.9rem",
+                            fontWeight: "600",
+                            fontFamily: "'Montserrat', sans-serif",
+                            transition: "all 0.3s ease"
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#5d8a5d"}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#6b9b6b"}
+                        >
+                          Full Return
+                        </button>
+                        <button
+                          onClick={() => openPartialReturn(issue)}
+                          style={{
+                            padding: "0.75rem 1.25rem",
+                            cursor: "pointer",
+                            backgroundColor: "#7944da",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            fontSize: "0.9rem",
+                            fontWeight: "600",
+                            fontFamily: "'Montserrat', sans-serif",
+                            transition: "all 0.3s ease"
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#6a3bc9"}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#7944da"}
+                        >
+                          Partial Return
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => handleReissue(issue)}
+                        style={{
+                          padding: "0.75rem 1.25rem",
+                          cursor: "pointer",
+                          backgroundColor: "#da871a",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          fontSize: "0.9rem",
+                          fontWeight: "600",
+                          fontFamily: "'Montserrat', sans-serif",
+                          transition: "all 0.3s ease"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#cd8125"}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#dd8d24"}
+                      >
+                        Reissue
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                <div style={{ display: "flex", gap: "0.5rem", flexDirection: "column" }}>
-                  {!issue.returned ? (
-                    <>
-                      <button
-                        onClick={() => handleFullReturn(issue.issue_id)}
-                        style={{
-                          padding: "0.5rem 1rem",
-                          cursor: "pointer",
-                          backgroundColor: "#4CAF50",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "4px",
-                        }}
-                      >
-                        Full Return
-                      </button>
-                      <button
-                        onClick={() => openPartialReturn(issue)}
-                        style={{
-                          padding: "0.5rem 1rem",
-                          cursor: "pointer",
-                          backgroundColor: "#2196F3",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "4px",
-                        }}
-                      >
-                        Partial Return
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => handleReissue(issue)}
-                      style={{
-                        padding: "0.5rem 1rem",
-                        cursor: "pointer",
-                        backgroundColor: "#FF9800",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      Reissue
-                    </button>
-                  )}
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* Partial Return Modal */}
-      {showPartialReturn && selectedIssue && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000,
-          }}
-          onClick={() => setShowPartialReturn(false)}
-        >
+        {/* Partial Return Modal */}
+        {showPartialReturn && selectedIssue && (
           <div
             style={{
-              backgroundColor: "white",
-              padding: "2rem",
-              borderRadius: "8px",
-              maxWidth: "500px",
-              width: "90%",
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 1000,
+              padding: "1rem"
             }}
-            onClick={e => e.stopPropagation()}
+            onClick={() => setShowPartialReturn(false)}
           >
-            <h2>Partial Return</h2>
-            <p>Specify quantities to return for each item:</p>
-
-            {selectedIssue.items.map(item => {
-              const available = item.quantity - item.returned_quantity;
-              const itemName = itemNames[item.item_no] || `Item #${item.item_no}`;
-              return (
-                <div key={item.item_no} style={{ marginBottom: "1rem" }}>
-                  <label>
-                    {itemName} (Available to return: {available}):
-                    <input
-                      type="number"
-                      min={0}
-                      max={available}
-                      value={partialReturns[item.item_no] || 0}
-                      onChange={e =>
-                        setPartialReturns({
-                          ...partialReturns,
-                          [item.item_no]: Number(e.target.value),
-                        })
-                      }
-                      style={{
-                        marginLeft: "1rem",
-                        padding: "0.5rem",
-                        width: "80px",
-                      }}
-                    />
-                  </label>
-                </div>
-              );
-            })}
-
-            <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
+            <div
+              style={{
+                backgroundColor: "rgba(42, 42, 42, 0.95)",
+                border: "1px solid #3a3a3a",
+                borderRadius: "6px",
+                padding: "2rem",
+                maxWidth: "550px",
+                width: "100%",
+                maxHeight: "90vh",
+                overflowY: "auto",
+                fontFamily: "'Montserrat', sans-serif",
+                position: "relative"
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close Button */}
               <button
-                onClick={() => handlePartialReturn(selectedIssue.issue_id)}
+                onClick={() => setShowPartialReturn(false)}
                 style={{
-                  padding: "0.5rem 1rem",
-                  cursor: "pointer",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
+                  position: "absolute",
+                  top: "1rem",
+                  right: "1rem",
+                  background: "none",
                   border: "none",
+                  color: "#888",
+                  fontSize: "1.5rem",
+                  cursor: "pointer",
+                  padding: "0.25rem",
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   borderRadius: "4px",
+                  transition: "all 0.3s ease"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#3a3a3a";
+                  e.currentTarget.style.color = "#7944da";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = "#888";
                 }}
               >
-                Confirm Return
+                ×
               </button>
-              <button
-                onClick={() => {
-                  setShowPartialReturn(false);
-                  setSelectedIssue(null);
-                  setPartialReturns({});
-                }}
-                style={{
-                  padding: "0.5rem 1rem",
-                  cursor: "pointer",
-                  backgroundColor: "#f44336",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                }}
-              >
-                Cancel
-              </button>
+
+              <h2 style={{
+                color: "#7944da",
+                fontSize: "1.5rem",
+                fontWeight: "600",
+                marginBottom: "0.5rem"
+              }}>
+                Partial Return
+              </h2>
+              <p style={{
+                color: "#888",
+                fontSize: "0.9rem",
+                marginBottom: "1.5rem"
+              }}>
+                Specify quantities to return for each item:
+              </p>
+
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1rem",
+                marginBottom: "1.5rem"
+              }}>
+                {selectedIssue.items.map(item => {
+                  const available = item.quantity - item.returned_quantity;
+                  const itemName = itemNames[item.item_no] || `Item #${item.item_no}`;
+                  return (
+                    <div key={item.item_no} style={{
+                      backgroundColor: "#232323",
+                      padding: "1rem",
+                      borderRadius: "4px",
+                      border: "1px solid #3a3a3a"
+                    }}>
+                      <label style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.5rem"
+                      }}>
+                        <div style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: "0.5rem"
+                        }}>
+                          <span style={{
+                            color: "#e0e0e0",
+                            fontSize: "0.95rem",
+                            fontWeight: "600"
+                          }}>
+                            {itemName}
+                          </span>
+                          <span style={{
+                            color: "#888",
+                            fontSize: "0.85rem"
+                          }}>
+                            Available: {available}
+                          </span>
+                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          max={available}
+                          value={partialReturns[item.item_no] || 0}
+                          onChange={e =>
+                            setPartialReturns({
+                              ...partialReturns,
+                              [item.item_no]: Number(e.target.value),
+                            })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            fontSize: "1rem",
+                            backgroundColor: "#1a1a1a",
+                            border: "1px solid #3a3a3a",
+                            borderRadius: "4px",
+                            color: "#e0e0e0",
+                            outline: "none",
+                            fontFamily: "'Montserrat', sans-serif"
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = "#7944da"}
+                          onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem"
+              }}>
+                <button
+                  onClick={() => handlePartialReturn(selectedIssue.issue_id)}
+                  style={{
+                    width: "100%",
+                    padding: "0.875rem",
+                    cursor: "pointer",
+                    backgroundColor: "#6b9b6b",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    fontSize: "1rem",
+                    fontWeight: "600",
+                    fontFamily: "'Montserrat', sans-serif",
+                    transition: "all 0.3s ease"
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#5d8a5d"}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#6b9b6b"}
+                >
+                  Confirm Return
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPartialReturn(false);
+                    setSelectedIssue(null);
+                    setPartialReturns({});
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "0.875rem",
+                    cursor: "pointer",
+                    backgroundColor: "transparent",
+                    color: "#c97a7a",
+                    border: "1px solid #c97a7a",
+                    borderRadius: "4px",
+                    fontSize: "1rem",
+                    fontWeight: "600",
+                    fontFamily: "'Montserrat', sans-serif",
+                    transition: "all 0.3s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#c97a7a";
+                    e.currentTarget.style.color = "#fff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.color = "#c97a7a";
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }

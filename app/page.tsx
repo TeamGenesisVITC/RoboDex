@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [name, setName] = useState("");
@@ -44,42 +45,171 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ padding: "2rem", maxWidth: "400px", margin: "0 auto" }}>
-      <h1>Login to Robodex</h1>
-      
-      <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <div>
-          <label>
-            Name:
+    <main style={{
+      minHeight: "100vh",
+      backgroundColor: "#1a1a1a",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: "1rem",
+      fontFamily: "'Montserrat', sans-serif"
+    }}>
+      <div style={{
+        backgroundColor: "#2a2a2a",
+        border: "1px solid #3a3a3a",
+        borderRadius: "6px",
+        padding: "2.5rem",
+        maxWidth: "420px",
+        width: "100%",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)"
+      }}>
+        {/* Logo */}
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: "2rem"
+        }}>
+          <Image
+            src="/logo_main.png"
+            alt="Protodex Logo"
+            width={600}
+            height={600}
+            style={{
+              objectFit: "contain"
+            }}
+          />
+        </div>
+
+        {/* Title */}
+        <h1 style={{
+          color: "#6a2eec",
+          fontSize: "1.75rem",
+          fontWeight: "600",
+          textAlign: "center",
+          marginBottom: "0.5rem",
+          letterSpacing: "0.5px"
+        }}>
+          Welcome Back
+        </h1>
+        
+        <p style={{
+          color: "#888",
+          textAlign: "center",
+          marginBottom: "2rem",
+          fontSize: "0.9rem"
+        }}>
+          Sign in to access Protodex
+        </p>
+
+        {/* Login Form */}
+        <form onSubmit={handleLogin} style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.25rem"
+        }}>
+          <div>
+            <label style={{
+              display: "block",
+              marginBottom: "0.5rem",
+              color: "#c0c0c0",
+              fontSize: "0.9rem",
+              fontWeight: "500"
+            }}>
+              Name
+            </label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
+              placeholder="Enter your name"
+              style={{
+                width: "100%",
+                padding: "0.875rem",
+                fontSize: "1rem",
+                backgroundColor: "#232323",
+                border: "1px solid #3a3a3a",
+                borderRadius: "4px",
+                color: "#e0e0e0",
+                outline: "none",
+                fontFamily: "'Montserrat', sans-serif",
+                transition: "all 0.3s ease"
+              }}
+              onFocus={(e) => e.target.style.borderColor = "#5b1be3"}
+              onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
             />
-          </label>
-        </div>
+          </div>
 
-        <div>
-          <label>
-            Password:
+          <div>
+            <label style={{
+              display: "block",
+              marginBottom: "0.5rem",
+              color: "#c0c0c0",
+              fontSize: "0.9rem",
+              fontWeight: "500"
+            }}>
+              Password
+            </label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
+              placeholder="Enter your password"
+              style={{
+                width: "100%",
+                padding: "0.875rem",
+                fontSize: "1rem",
+                backgroundColor: "#232323",
+                border: "1px solid #3a3a3a",
+                borderRadius: "4px",
+                color: "#e0e0e0",
+                outline: "none",
+                fontFamily: "'Montserrat', sans-serif",
+                transition: "all 0.3s ease"
+              }}
+              onFocus={(e) => e.target.style.borderColor = "#5b1be3"}
+              onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
             />
-          </label>
-        </div>
+          </div>
 
-        {error && <div style={{ color: "red" }}>{error}</div>}
+          {error && (
+            <div style={{
+              backgroundColor: "rgba(201, 122, 122, 0.15)",
+              border: "1px solid #c97a7a",
+              borderRadius: "4px",
+              padding: "0.75rem",
+              color: "#c97a7a",
+              fontSize: "0.9rem",
+              textAlign: "center"
+            }}>
+              {error}
+            </div>
+          )}
 
-        <button type="submit" style={{ padding: "0.75rem", cursor: "pointer" }}>
-          Login
-        </button>
-      </form>
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "0.875rem",
+              fontSize: "1rem",
+              fontWeight: "600",
+              backgroundColor: "#6930e4",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontFamily: "'Montserrat', sans-serif",
+              transition: "all 0.3s ease",
+              marginTop: "0.5rem"
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#3d17a5"}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#572db2"}
+          >
+            Sign In
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

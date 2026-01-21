@@ -156,7 +156,7 @@ export default function InventoryPage() {
           marginBottom: "2rem"
         }}>
           <h1 style={{
-            color: "#b19cd9",
+            color: "#8550e9",
             fontSize: "2.5rem",
             fontWeight: "600",
             letterSpacing: "0.5px",
@@ -177,14 +177,14 @@ export default function InventoryPage() {
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
-              color: "#b19cd9",
+              color: "#ffffff",
               fontSize: "1rem",
               fontWeight: "600",
               fontFamily: "'Montserrat', sans-serif",
               transition: "all 0.3s ease"
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#8b7ab8";
+              e.currentTarget.style.borderColor = "#5b1be3";
               e.currentTarget.style.backgroundColor = "#2d2d2d";
             }}
             onMouseLeave={(e) => {
@@ -212,7 +212,7 @@ export default function InventoryPage() {
                 position: "absolute",
                 top: "-8px",
                 right: "-8px",
-                backgroundColor: "#8b7ab8",
+                backgroundColor: "#7743e9",
                 color: "white",
                 borderRadius: "50%",
                 width: "24px",
@@ -250,7 +250,7 @@ export default function InventoryPage() {
               fontFamily: "'Montserrat', sans-serif"
             }}
             onFocus={(e) => {
-              e.target.style.borderColor = "#8b7ab8";
+              e.target.style.borderColor = "#5b1be3";
               e.target.style.backgroundColor = "#2d2d2d";
             }}
             onBlur={(e) => {
@@ -286,7 +286,7 @@ export default function InventoryPage() {
                 }}
                 onMouseEnter={(e) => {
                   if (!disabled) {
-                    e.currentTarget.style.borderColor = "#8b7ab8";
+                    e.currentTarget.style.borderColor = "#5b1be3";
                     e.currentTarget.style.backgroundColor = "#2d2d2d";
                     e.currentTarget.style.transform = "translateY(-2px)";
                     e.currentTarget.style.boxShadow = "0 8px 16px rgba(139, 122, 184, 0.15)";
@@ -302,7 +302,7 @@ export default function InventoryPage() {
                 }}
               >
                 <h3 style={{
-                  color: "#b19cd9",
+                  color: "#ffffff",
                   fontSize: "1.125rem",
                   fontWeight: "600",
                   marginBottom: "1rem",
@@ -563,7 +563,7 @@ export default function InventoryPage() {
                     outline: "none",
                     fontFamily: "'Montserrat', sans-serif"
                   }}
-                  onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                  onFocus={(e) => e.target.style.borderColor = "#5b1be3"}
                   onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                 />
               </label>
@@ -585,7 +585,7 @@ export default function InventoryPage() {
                     fontFamily: "'Montserrat', sans-serif",
                     cursor: "pointer"
                   }}
-                  onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                  onFocus={(e) => e.target.style.borderColor = "#5b1be3"}
                   onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                 >
                   <option value="">Select a project</option>
@@ -614,7 +614,7 @@ export default function InventoryPage() {
                     outline: "none",
                     fontFamily: "'Montserrat', sans-serif"
                   }}
-                  onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                  onFocus={(e) => e.target.style.borderColor = "#5b1be3"}
                   onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                 />
               </label>
@@ -664,7 +664,7 @@ export default function InventoryPage() {
                   padding: "0.875rem",
                   fontSize: "1rem",
                   fontWeight: "600",
-                  backgroundColor: selectedItem.available === 0 ? "#3a3a3a" : "#8b7ab8",
+                  backgroundColor: selectedItem.available === 0 ? "#3a3a3a" : "#5b1be3",
                   color: selectedItem.available === 0 ? "#666" : "#fff",
                   border: "none",
                   borderRadius: "4px",
@@ -674,12 +674,12 @@ export default function InventoryPage() {
                 }}
                 onMouseEnter={(e) => {
                   if (selectedItem.available > 0) {
-                    e.currentTarget.style.backgroundColor = "#7a69a7";
+                    e.currentTarget.style.backgroundColor = "#5b1be3";
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (selectedItem.available > 0) {
-                    e.currentTarget.style.backgroundColor = "#8b7ab8";
+                    e.currentTarget.style.backgroundColor = "#5b1be3";
                   }
                 }}
               >
@@ -702,8 +702,8 @@ export default function InventoryPage() {
                   fontFamily: "'Montserrat', sans-serif"
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#8b7ab8";
-                  e.currentTarget.style.color = "#b19cd9";
+                  e.currentTarget.style.borderColor = "#5a1be3";
+                  e.currentTarget.style.color = "#6a30e7";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = "#3a3a3a";
@@ -727,10 +727,10 @@ export default function InventoryPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    color: "#b19cd9",
+                    color: "#5b1be3",
                     fontSize: "0.9rem",
                     textDecoration: "none",
-                    borderBottom: "1px dotted #b19cd9",
+                    borderBottom: "1px dotted #5b1be3",
                     cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",

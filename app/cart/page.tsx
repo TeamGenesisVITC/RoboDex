@@ -105,7 +105,7 @@ export default function CartPage() {
         margin: "0 auto"
       }}>
         <h1 style={{
-          color: "#b19cd9",
+          color: "#733fd3",
           fontSize: "2.5rem",
           fontWeight: "600",
           marginBottom: "2rem",
@@ -133,7 +133,7 @@ export default function CartPage() {
               onClick={() => router.push("/inventory")}
               style={{
                 padding: "0.875rem 1.5rem",
-                backgroundColor: "#8b7ab8",
+                backgroundColor: "#ffffff",
                 color: "white",
                 border: "none",
                 borderRadius: "4px",
@@ -143,7 +143,7 @@ export default function CartPage() {
                 fontFamily: "'Montserrat', sans-serif",
                 transition: "all 0.3s ease"
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#7a69a7"}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#5c3daf"}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#8b7ab8"}
             >
               Browse Inventory
@@ -154,7 +154,7 @@ export default function CartPage() {
             {/* Cart Items */}
             <div style={{ marginBottom: "2rem" }}>
               <h3 style={{
-                color: "#b19cd9",
+                color: "#703fcc",
                 fontSize: "1.25rem",
                 fontWeight: "600",
                 marginBottom: "1rem"
@@ -185,7 +185,7 @@ export default function CartPage() {
                     >
                       <div style={{ flex: "1 1 200px" }}>
                         <strong style={{
-                          color: "#b19cd9",
+                          color: "#ffffff",
                           fontSize: "1.125rem",
                           display: "block",
                           marginBottom: "0.25rem"
@@ -234,7 +234,7 @@ export default function CartPage() {
                               outline: "none",
                               fontFamily: "'Montserrat', sans-serif"
                             }}
-                            onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                            onFocus={(e) => e.target.style.borderColor = "#5734b9"}
                             onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                           />
                         </div>
@@ -242,7 +242,7 @@ export default function CartPage() {
                           onClick={() => removeFromCart(item.item_no)}
                           style={{
                             padding: "0.75rem 1.25rem",
-                            backgroundColor: "#c97a7a",
+                            backgroundColor: "#b05a5a",
                             color: "white",
                             border: "none",
                             borderRadius: "4px",
@@ -275,7 +275,7 @@ export default function CartPage() {
               }}
             >
               <h3 style={{
-                color: "#b19cd9",
+                color: "#7944da",
                 fontSize: "1.25rem",
                 fontWeight: "600",
                 marginBottom: "1.5rem"
@@ -313,7 +313,7 @@ export default function CartPage() {
                       fontFamily: "'Montserrat', sans-serif",
                       cursor: "pointer"
                     }}
-                    onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                    onFocus={(e) => e.target.style.borderColor = "#552fbe"}
                     onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                   >
                     <option value="">Select a project</option>
@@ -348,7 +348,7 @@ export default function CartPage() {
                       outline: "none",
                       fontFamily: "'Montserrat', sans-serif"
                     }}
-                    onFocus={(e) => e.target.style.borderColor = "#8b7ab8"}
+                    onFocus={(e) => e.target.style.borderColor = "#5631ba"}
                     onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                   />
                 </label>
@@ -364,7 +364,7 @@ export default function CartPage() {
                   style={{
                     flex: "1 1 200px",
                     padding: "0.875rem",
-                    backgroundColor: "#6b9b6b",
+                    backgroundColor: "#477947",
                     color: "white",
                     border: "none",
                     borderRadius: "4px",
@@ -384,7 +384,7 @@ export default function CartPage() {
                   style={{
                     flex: "1 1 200px",
                     padding: "0.875rem",
-                    backgroundColor: "#c97a7a",
+                    backgroundColor: "#b05a5a",
                     color: "white",
                     border: "none",
                     borderRadius: "4px",
