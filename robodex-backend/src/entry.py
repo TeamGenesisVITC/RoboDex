@@ -1,6 +1,7 @@
 import json, time, base64, hmac, hashlib
 from workers import Response, WorkerEntrypoint
 from pyodide.http import pyfetch
+from urllib.parse import urlparse
 
 def b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
@@ -94,7 +95,8 @@ class Default(WorkerEntrypoint):
             SUPABASE_KEY = self.env.SUPABASE_SERVICE_KEY
             JWT_SECRET = self.env.JWT_SECRET
             
-            path = request.url.split("/")[-1]
+            parsed_url = urlparse(request.url)
+            path = parsed_url.path.lstrip("/")
             method = request.method
 
             # ---- LOGIN ----
@@ -208,9 +210,9 @@ class Default(WorkerEntrypoint):
                 }, headers=cors_headers)
             
             # ---- GET PROJECT DETAILS ----
-            if path.startswith("projects/") and method == "GET":
+            if path.startswith("projects/") and not path.endswith("/analytics") and method == "GET":
                 project_id = path.split("/")[1]
-                
+                print("Fetching project details for:", project_id)
                 # Get project info
                 project = await sb_get(
                     f"projects?project_id=eq.{project_id}&select=*",
@@ -218,13 +220,13 @@ class Default(WorkerEntrypoint):
                     SUPABASE_KEY
                 )
                 
-                if not project:
+                if not project or len(project) == 0:
                     return Response("Project not found", status=404, headers=cors_headers)
                 
                 return Response.json(project[0], headers=cors_headers)
 
             # ---- GET PROJECT ANALYTICS ----
-            if path.startswith("projects/") and path.endswith("/analytics") and method == "GET":
+            if path.endswith("/analytics") and method == "GET":
                 project_id = path.split("/")[1]
                 
                 data = await sb_post("rpc/get_project_items", {
@@ -259,7 +261,25 @@ class Default(WorkerEntrypoint):
                     "name": payload["name"]
                 }, headers=cors_headers)
 
-            return Response("Not Found", status=404, headers=cors_headers)
+            if path == "debug" and method == "GET":
+                return Response.json({
+                    "full_url": request.url,
+                    "path": path,
+                    "method": method,
+                    "has_payload": payload is not None
+                }, headers=cors_headers)
+
+            # Also modify the 404 to show debug info
+            return Response.json({
+                "error": "Not Found",
+                "debug": {
+                    "path": path,
+                    "method": method,
+                    "url": request.url
+                }
+            }, status=404, headers=cors_headers)
+
+            #return Response("Not Found", status=404, headers=cors_headers)
 
         except Exception as e:
             # Always return CORS headers even on error
