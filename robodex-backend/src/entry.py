@@ -76,12 +76,33 @@ async def sb_post(path, body, url, key):
     
     return res
 
+async def sb_patch(path, body, url, key):
+    """PATCH method for updating Supabase records"""
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+    }
+    res = await pyfetch(
+        f"{url}/rest/v1/{path}",
+        method="PATCH",
+        headers=headers,
+        body=json.dumps(body)
+    )
+    
+    if not res.ok:
+        error_text = await res.text()
+        raise Exception(f"Supabase PATCH error: {res.status} - {error_text}")
+    
+    return res
+
 class Default(WorkerEntrypoint):
     async def fetch(self, request):
         # CORS headers
         cors_headers = {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, Authorization",
         }
 
@@ -94,6 +115,7 @@ class Default(WorkerEntrypoint):
             SUPABASE_URL = self.env.SUPABASE_URL
             SUPABASE_KEY = self.env.SUPABASE_SERVICE_KEY
             JWT_SECRET = self.env.JWT_SECRET
+            GITHUB_TOKEN = self.env.GITHUB_TOKEN if hasattr(self.env, 'GITHUB_TOKEN') else None
             
             parsed_url = urlparse(request.url)
             path = parsed_url.path.lstrip("/")
@@ -120,31 +142,182 @@ class Default(WorkerEntrypoint):
             if not payload:
                 return Response("Unauthorized", status=401, headers=cors_headers)
 
+            # ---- ME ENDPOINT ----
+            if path == "me" and method == "GET":
+                return Response.json({
+                    "member_id": payload["member_id"],
+                    "name": payload["name"]
+                }, headers=cors_headers)
+
             # ---- INVENTORY ----
             if path == "registry" and method == "GET":
-                data = await sb_get("inventory?select=*", SUPABASE_URL, SUPABASE_KEY)
-                return Response.json(data, headers=cors_headers)
-
-            # ---- GET REGISTRY (with optional filter) ----
-            if path.startswith("registry") and method == "GET":
                 # Parse query string for filters
                 query_params = ""
                 if "?" in request.url:
-                    query_params = "?" + request.url.split("?")[1]
+                    query_params = "&" + request.url.split("?")[1]
                 
                 data = await sb_get(
-                    f"inventory{query_params}&select=*",
+                    f"inventory?select=*{query_params}",
                     SUPABASE_URL,
                     SUPABASE_KEY
                 )
                 return Response.json(data, headers=cors_headers)
 
-            # ---- PROJECTS ----
+            # ---- PROJECTS LIST ----
             if path == "projects" and method == "GET":
                 data = await sb_get("projects?select=*", SUPABASE_URL, SUPABASE_KEY)
                 return Response.json(data, headers=cors_headers)
 
-            # ---- ISSUE ----
+            # ---- UPDATE PROJECT (PATCH) ----
+            if path.startswith("projects/") and method == "PATCH":
+                project_id = path.split("/")[1]
+                body = await request.json()
+                
+                # Update project in Supabase using PATCH
+                await sb_patch(
+                    f"projects?project_id=eq.{project_id}",
+                    body,
+                    SUPABASE_URL,
+                    SUPABASE_KEY
+                )
+                
+                return Response.json({"success": True}, headers=cors_headers)
+
+            # ---- GET PROJECT ANALYTICS ----
+            if path.endswith("/analytics") and method == "GET":
+                project_id = path.split("/")[1]
+                
+                data = await sb_post("rpc/get_project_items", {
+                    "p_project_id": project_id
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                return Response.json(result, headers=cors_headers)
+
+            # ---- GET PROJECT DETAILS ----
+            if path.startswith("projects/") and method == "GET":
+                project_id = path.split("/")[1]
+                
+                # Get project info
+                project = await sb_get(
+                    f"projects?project_id=eq.{project_id}&select=*",
+                    SUPABASE_URL,
+                    SUPABASE_KEY
+                )
+                
+                if not project or len(project) == 0:
+                    return Response("Project not found", status=404, headers=cors_headers)
+                
+                return Response.json(project[0], headers=cors_headers)
+
+            # ---- GITHUB CONTRIBUTORS ----
+            if path.startswith("github/") and path.endswith("/contributors") and method == "GET":
+                repo = path.replace("/contributors", "").split("/", 1)[1]
+                
+                try:
+                    headers = {
+                        "Accept": "application/vnd.github.v3+json",
+                        "User-Agent": "Robodex-App"
+                    }
+                    if GITHUB_TOKEN:
+                        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+                    
+                    gh_response = await pyfetch(
+                        f"https://api.github.com/repos/{repo}/contributors?per_page=10",
+                        headers=headers
+                    )
+                    
+                    if not gh_response.ok:
+                        error_text = await gh_response.text()
+                        return Response.json({
+                            "error": "Failed to fetch contributors",
+                            "status": gh_response.status,
+                            "details": error_text
+                        }, status=gh_response.status, headers=cors_headers)
+                    
+                    data = await gh_response.json()
+                    return Response.json(data, headers=cors_headers)
+                    
+                except Exception as gh_error:
+                    return Response.json({
+                        "error": "GitHub API error",
+                        "details": str(gh_error)
+                    }, status=500, headers=cors_headers)
+
+            # ---- GITHUB PULL REQUESTS ----
+            if path.startswith("github/") and path.endswith("/pulls") and method == "GET":
+                repo = path.replace("/pulls", "").split("/", 1)[1]
+                
+                try:
+                    headers = {
+                        "Accept": "application/vnd.github.v3+json",
+                        "User-Agent": "Robodex-App"
+                    }
+                    if GITHUB_TOKEN:
+                        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+                    
+                    gh_response = await pyfetch(
+                        f"https://api.github.com/repos/{repo}/pulls?state=all&per_page=100",
+                        headers=headers
+                    )
+                    
+                    if not gh_response.ok:
+                        error_text = await gh_response.text()
+                        return Response.json({
+                            "error": "Failed to fetch pull requests",
+                            "status": gh_response.status,
+                            "details": error_text
+                        }, status=gh_response.status, headers=cors_headers)
+                    
+                    data = await gh_response.json()
+                    return Response.json(data, headers=cors_headers)
+                    
+                except Exception as gh_error:
+                    return Response.json({
+                        "error": "GitHub API error",
+                        "details": str(gh_error)
+                    }, status=500, headers=cors_headers)
+
+            # ---- GITHUB ISSUES (base endpoint, must be last) ----
+            if path.startswith("github/") and method == "GET":
+                # Extract repo (everything after "github/")
+                repo = path.split("/", 1)[1]
+                
+                # Remove any trailing paths that were already handled
+                if "/pulls" in repo or "/contributors" in repo:
+                    return Response("Not Found", status=404, headers=cors_headers)
+                
+                try:
+                    headers = {
+                        "Accept": "application/vnd.github.v3+json",
+                        "User-Agent": "Robodex-App"
+                    }
+                    if GITHUB_TOKEN:
+                        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+                    
+                    gh_response = await pyfetch(
+                        f"https://api.github.com/repos/{repo}/issues?state=all&per_page=100",
+                        headers=headers
+                    )
+                    
+                    if not gh_response.ok:
+                        error_text = await gh_response.text()
+                        return Response.json({
+                            "error": "Failed to fetch GitHub issues",
+                            "status": gh_response.status,
+                            "details": error_text
+                        }, status=gh_response.status, headers=cors_headers)
+                    
+                    issues = await gh_response.json()
+                    return Response.json(issues, headers=cors_headers)
+                    
+                except Exception as gh_error:
+                    return Response.json({
+                        "error": "GitHub API error",
+                        "details": str(gh_error)
+                    }, status=500, headers=cors_headers)
+
+            # ---- ISSUE ITEMS ----
             if path == "issue" and method == "POST":
                 body = await request.json()
                 await sb_post("rpc/issue_items", {
@@ -155,7 +328,7 @@ class Default(WorkerEntrypoint):
                 }, SUPABASE_URL, SUPABASE_KEY)
                 return Response.json({"success": True}, headers=cors_headers)
             
-            #---- ISSUES ----
+            # ---- MY ISSUES ----
             if path == "my-issues" and method == "GET":
                 data = await sb_get(
                     f"issues?member_id=eq.{payload['member_id']}&select=*",
@@ -185,7 +358,7 @@ class Default(WorkerEntrypoint):
             if path == "update-password" and method == "POST":
                 body = await request.json()
                 
-                # Verify current password by attempting login
+                # Verify current password
                 login_res = await sb_get(
                     f"members?name=eq.{payload['name']}&password=eq.{body['current_password']}&select=member_id,name",
                     SUPABASE_URL,
@@ -195,81 +368,31 @@ class Default(WorkerEntrypoint):
                 if not login_res:
                     return Response("Current password is incorrect", status=401, headers=cors_headers)
                 
-                # Current password is correct, update to new password using RPC
+                # Update password
                 await sb_post("rpc/update_member_password", {
                     "p_member_id": payload["member_id"],
                     "p_new_password": body["new_password"]
                 }, SUPABASE_URL, SUPABASE_KEY)
                 
-                # Generate new JWT with updated credentials
+                # Generate new JWT
                 new_token = sign_jwt(login_res[0], JWT_SECRET)
                 
                 return Response.json({
                     "success": True,
                     "token": new_token
                 }, headers=cors_headers)
-            
-            # ---- GET PROJECT DETAILS ----
-            if path.startswith("projects/") and not path.endswith("/analytics") and method == "GET":
-                project_id = path.split("/")[1]
-                print("Fetching project details for:", project_id)
-                # Get project info
-                project = await sb_get(
-                    f"projects?project_id=eq.{project_id}&select=*",
-                    SUPABASE_URL,
-                    SUPABASE_KEY
-                )
-                
-                if not project or len(project) == 0:
-                    return Response("Project not found", status=404, headers=cors_headers)
-                
-                return Response.json(project[0], headers=cors_headers)
 
-            # ---- GET PROJECT ANALYTICS ----
-            if path.endswith("/analytics") and method == "GET":
-                project_id = path.split("/")[1]
-                
-                data = await sb_post("rpc/get_project_items", {
-                    "p_project_id": project_id
-                }, SUPABASE_URL, SUPABASE_KEY)
-                
-                result = await data.json()
-                return Response.json(result, headers=cors_headers)
-            
-            # ---- GET GITHUB ISSUES ----
-            if path.startswith("github/") and method == "GET":
-                repo = path.split("/", 1)[1]  # e.g., "owner/repo"
-                
-                gh_response = await pyfetch(
-                    f"https://api.github.com/repos/{repo}/issues?state=open",
-                    headers={
-                        "Accept": "application/vnd.github.v3+json",
-                        "User-Agent": "Robodex-App"
-                    }
-                )
-                
-                if not gh_response.ok:
-                    return Response("Failed to fetch GitHub data", status=500, headers=cors_headers)
-                
-                issues = await gh_response.json()
-                return Response.json(issues, headers=cors_headers)
-            
-            if path == "me" and method == "GET":
-                # payload already contains member_id and name from the JWT
-                return Response.json({
-                    "member_id": payload["member_id"],
-                    "name": payload["name"]
-                }, headers=cors_headers)
-
+            # ---- DEBUG ENDPOINT ----
             if path == "debug" and method == "GET":
                 return Response.json({
                     "full_url": request.url,
                     "path": path,
                     "method": method,
-                    "has_payload": payload is not None
+                    "has_payload": payload is not None,
+                    "has_github_token": GITHUB_TOKEN is not None
                 }, headers=cors_headers)
 
-            # Also modify the 404 to show debug info
+            # 404 with debug info
             return Response.json({
                 "error": "Not Found",
                 "debug": {
@@ -279,8 +402,14 @@ class Default(WorkerEntrypoint):
                 }
             }, status=404, headers=cors_headers)
 
-            #return Response("Not Found", status=404, headers=cors_headers)
-
         except Exception as e:
-            # Always return CORS headers even on error
-            return Response(f"Error: {str(e)}", status=500, headers=cors_headers)
+            # Log the full error for debugging
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error: {error_details}")
+            
+            # Return error with CORS headers
+            return Response.json({
+                "error": str(e),
+                "type": type(e).__name__
+            }, status=500, headers=cors_headers)
