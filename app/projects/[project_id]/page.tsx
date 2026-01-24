@@ -15,6 +15,24 @@ interface Project {
   notion_page_id?: string;
   github_repo?: string;
   doc_urls?: { name: string; url: string }[];
+  description?: string;
+  members?: string[];
+  managers?: string[];
+  pool?: string;
+}
+
+interface Member {
+  member_id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  [key: string]: string | undefined; // Allow for additional fields
+}
+
+interface Pool {
+  pool_id: string;
+  name: string;
+  description?: string;
 }
 
 interface ProjectItem {
@@ -60,7 +78,7 @@ interface GitHubContributor {
   avatar_url: string;
 }
 
-type TabType = "analytics" | "notion" | "github" | "docs" | "settings";
+type TabType = "overview" | "notion" | "github" | "docs" | "settings";
 
 // Toast notification component
 function Toast({ message, type, onClose }: { message: string; type: "success" | "error"; onClose: () => void }) {
@@ -91,9 +109,11 @@ function Toast({ message, type, onClose }: { message: string; type: "success" | 
 
 export default function ProjectPage({ params }: Props) {
   const { project_id } = use(params);
-  const [activeTab, setActiveTab] = useState<TabType>("analytics");
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [project, setProject] = useState<Project | null>(null);
   const [analytics, setAnalytics] = useState<ProjectItem[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [poolInfo, setPoolInfo] = useState<Pool | null>(null);
   const [githubIssues, setGithubIssues] = useState<GitHubIssue[]>([]);
   const [githubPRs, setGithubPRs] = useState<GitHubPR[]>([]);
   const [githubContributors, setGithubContributors] = useState<GitHubContributor[]>([]);
@@ -147,6 +167,35 @@ export default function ProjectPage({ params }: Props) {
         // Fetch analytics
         const analyticsData = await api<ProjectItem[]>(`projects/${project_id}/analytics`);
         setAnalytics(analyticsData);
+
+        // Fetch members data if member IDs are available
+        if (projectData.members && projectData.members.length > 0) {
+          const allMemberIds = [
+            ...(projectData.managers || []),
+            ...(projectData.members || [])
+          ];
+          const uniqueMemberIds = [...new Set(allMemberIds)];
+          
+          try {
+            const membersData = await api<Member[]>(`members/batch`, {
+              method: "POST",
+              body: JSON.stringify({ member_ids: uniqueMemberIds })
+            });
+            setMembers(membersData);
+          } catch (err) {
+            console.error("Failed to fetch members:", err);
+          }
+        }
+
+        // Fetch pool info if pool ID is available
+        if (projectData.pool) {
+          try {
+            const poolData = await api<Pool>(`pool/${projectData.pool}`);
+            setPoolInfo(poolData);
+          } catch (err) {
+            console.error("Failed to fetch pool:", err);
+          }
+        }
 
         // Fetch GitHub data if repo is configured
         if (projectData.github_repo) {
@@ -232,6 +281,16 @@ export default function ProjectPage({ params }: Props) {
     );
   }
 
+  // Separate managers and regular members
+  const managerIds = new Set(project.managers || []);
+  const managerMembers = members.filter(m => managerIds.has(m.member_id));
+  const regularMembers = members.filter(m => !managerIds.has(m.member_id));
+  
+  // Get all unique keys from members data (for dynamic columns)
+  const memberKeys = members.length > 0 
+    ? Array.from(new Set(members.flatMap(m => Object.keys(m))))
+    : [];
+
   // GitHub stats
   const openIssues = githubIssues.filter(i => i.state === "open").length;
   const closedIssues = githubIssues.filter(i => i.state === "closed").length;
@@ -249,12 +308,25 @@ export default function ProjectPage({ params }: Props) {
         />
       )}
       
-      <h1 style={{ marginBottom: "2rem" }}>{project.project_name}</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+        <h1 style={{ margin: 0 }}>{project.project_name}</h1>
+        {poolInfo && (
+          <div style={{ 
+            padding: "0.5rem 1rem", 
+            backgroundColor: "#f0f0f0", 
+            borderRadius: "4px",
+            fontSize: "0.9rem",
+            color: "#555"
+          }}>
+            Pool: <strong>{poolInfo.name}</strong>
+          </div>
+        )}
+      </div>
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: "1rem", borderBottom: "2px solid #ccc", marginBottom: "2rem" }}>
-        <TabButton active={activeTab === "analytics"} onClick={() => setActiveTab("analytics")}>
-          Analytics
+        <TabButton active={activeTab === "overview"} onClick={() => setActiveTab("overview")}>
+          Overview
         </TabButton>
         {project.notion_page_id && (
           <TabButton active={activeTab === "notion"} onClick={() => setActiveTab("notion")}>
@@ -276,37 +348,120 @@ export default function ProjectPage({ params }: Props) {
         </TabButton>
       </div>
 
-      {/* Analytics Tab */}
-      <TabPanel active={activeTab === "analytics"}>
-        <h2>Items Issued to Project</h2>
-        {analytics.length === 0 ? (
-          <p style={{ color: "#666", fontStyle: "italic" }}>No items have been issued to this project yet.</p>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
-            <thead>
-              <tr style={{ backgroundColor: "#f5f5f5" }}>
-                <th style={{ padding: "1rem", textAlign: "left", border: "1px solid #ddd" }}>Item No</th>
-                <th style={{ padding: "1rem", textAlign: "left", border: "1px solid #ddd" }}>Item Name</th>
-                <th style={{ padding: "1rem", textAlign: "right", border: "1px solid #ddd" }}>Quantity Issued</th>
-                <th style={{ padding: "1rem", textAlign: "right", border: "1px solid #ddd" }}>Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {analytics.map(item => (
-                <tr key={item.item_no} style={{ transition: "background-color 0.2s" }}>
-                  <td style={{ padding: "1rem", border: "1px solid #ddd" }}>{item.item_no}</td>
-                  <td style={{ padding: "1rem", border: "1px solid #ddd" }}>{item.item_name}</td>
-                  <td style={{ padding: "1rem", textAlign: "right", border: "1px solid #ddd" }}>
-                    {item.total_quantity}
-                  </td>
-                  <td style={{ padding: "1rem", textAlign: "right", border: "1px solid #ddd" }}>
-                    {item.price || "N/A"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Overview Tab */}
+      <TabPanel active={activeTab === "overview"}>
+        {/* Description Section */}
+        {project.description && (
+          <div style={{ marginBottom: "2rem" }}>
+            <h2>Description</h2>
+            <p style={{ 
+              color: "#555", 
+              lineHeight: "1.6", 
+              fontSize: "1rem",
+              backgroundColor: "#f9f9f9",
+              padding: "1rem",
+              borderRadius: "4px",
+              border: "1px solid #e0e0e0"
+            }}>
+              {project.description}
+            </p>
+          </div>
         )}
+
+        {/* Team Members Section */}
+        {members.length > 0 && (
+          <div style={{ marginBottom: "2rem" }}>
+            <h2>Team Members</h2>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
+                <thead>
+                  <tr style={{ backgroundColor: "#f5f5f5" }}>
+                    {memberKeys.map(key => (
+                      <th key={key} style={{ 
+                        padding: "1rem", 
+                        textAlign: "left", 
+                        border: "1px solid #ddd",
+                        textTransform: "capitalize",
+                        fontWeight: "600"
+                      }}>
+                        {key.replace(/_/g, ' ')}
+                      </th>
+                    ))}
+                    <th style={{ padding: "1rem", textAlign: "left", border: "1px solid #ddd", fontWeight: "600" }}>
+                      Role
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Managers first */}
+                  {managerMembers.map(member => (
+                    <tr key={member.member_id} style={{ backgroundColor: "#fffbf0" }}>
+                      {memberKeys.map(key => (
+                        <td key={key} style={{ padding: "1rem", border: "1px solid #ddd" }}>
+                          {member[key] || '—'}
+                        </td>
+                      ))}
+                      <td style={{ 
+                        padding: "1rem", 
+                        border: "1px solid #ddd",
+                        fontWeight: "600",
+                        color: "#d97706"
+                      }}>
+                        Manager
+                      </td>
+                    </tr>
+                  ))}
+                  {/* Regular members */}
+                  {regularMembers.map(member => (
+                    <tr key={member.member_id}>
+                      {memberKeys.map(key => (
+                        <td key={key} style={{ padding: "1rem", border: "1px solid #ddd" }}>
+                          {member[key] || '—'}
+                        </td>
+                      ))}
+                      <td style={{ padding: "1rem", border: "1px solid #ddd", color: "#666" }}>
+                        Member
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Items Issued Section */}
+        <div>
+          <h2>Items Issued to Project</h2>
+          {analytics.length === 0 ? (
+            <p style={{ color: "#666", fontStyle: "italic" }}>No items have been issued to this project yet.</p>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
+              <thead>
+                <tr style={{ backgroundColor: "#f5f5f5" }}>
+                  <th style={{ padding: "1rem", textAlign: "left", border: "1px solid #ddd" }}>Item No</th>
+                  <th style={{ padding: "1rem", textAlign: "left", border: "1px solid #ddd" }}>Item Name</th>
+                  <th style={{ padding: "1rem", textAlign: "right", border: "1px solid #ddd" }}>Quantity Issued</th>
+                  <th style={{ padding: "1rem", textAlign: "right", border: "1px solid #ddd" }}>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {analytics.map(item => (
+                  <tr key={item.item_no} style={{ transition: "background-color 0.2s" }}>
+                    <td style={{ padding: "1rem", border: "1px solid #ddd" }}>{item.item_no}</td>
+                    <td style={{ padding: "1rem", border: "1px solid #ddd" }}>{item.item_name}</td>
+                    <td style={{ padding: "1rem", textAlign: "right", border: "1px solid #ddd" }}>
+                      {item.total_quantity}
+                    </td>
+                    <td style={{ padding: "1rem", textAlign: "right", border: "1px solid #ddd" }}>
+                      {item.price || "N/A"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </TabPanel>
 
       {/* Notion Tab */}
@@ -448,11 +603,46 @@ export default function ProjectPage({ params }: Props) {
         <h2>Project Settings</h2>
         
         {editedProject && (
-          <div style={{ maxWidth: "600px", marginTop: "1.5rem" }}>
+          <div style={{ maxWidth: "800px", marginTop: "1.5rem" }}>
             <FormField
               label="Project Name"
               value={editedProject.project_name}
               onChange={(value) => setEditedProject({ ...editedProject, project_name: value })}
+            />
+
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
+                Description
+              </label>
+              <textarea
+                value={editedProject.description || ""}
+                onChange={(e) => setEditedProject({ ...editedProject, description: e.target.value })}
+                placeholder="Enter project description..."
+                rows={4}
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  fontSize: "1rem",
+                  fontFamily: "inherit",
+                  resize: "vertical"
+                }}
+              />
+            </div>
+
+            <MemberSelector
+              label="Managers"
+              selectedIds={editedProject.managers || []}
+              allMembers={members}
+              onChange={(ids) => setEditedProject({ ...editedProject, managers: ids })}
+            />
+
+            <MemberSelector
+              label="Members"
+              selectedIds={editedProject.members || []}
+              allMembers={members}
+              onChange={(ids) => setEditedProject({ ...editedProject, members: ids })}
             />
 
             <FormField
@@ -628,6 +818,167 @@ function FormField({
           fontSize: "1rem"
         }}
       />
+    </div>
+  );
+}
+
+function MemberSelector({ 
+  label, 
+  selectedIds, 
+  allMembers, 
+  onChange 
+}: { 
+  label: string; 
+  selectedIds: string[]; 
+  allMembers: Member[]; 
+  onChange: (ids: string[]) => void;
+}) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const selectedMembers = allMembers.filter(m => selectedIds.includes(m.member_id));
+  const availableMembers = allMembers.filter(m => !selectedIds.includes(m.member_id));
+  
+  const filteredMembers = availableMembers.filter(m => 
+    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    m.member_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (m.phone && m.phone.includes(searchTerm))
+  );
+
+  const handleAddMember = (memberId: string) => {
+    onChange([...selectedIds, memberId]);
+    setSearchTerm("");
+    setShowDropdown(false);
+  };
+
+  const handleRemoveMember = (memberId: string) => {
+    onChange(selectedIds.filter(id => id !== memberId));
+  };
+
+  return (
+    <div style={{ marginBottom: "1.5rem" }}>
+      <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
+        {label}
+      </label>
+      
+      {/* Selected Members */}
+      {selectedMembers.length > 0 && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          {selectedMembers.map(member => (
+            <div
+              key={member.member_id}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem 0.75rem",
+                backgroundColor: "#e3f2fd",
+                border: "1px solid #2196F3",
+                borderRadius: "4px",
+                marginRight: "0.5rem",
+                marginBottom: "0.5rem"
+              }}
+            >
+              <span style={{ fontSize: "0.9rem" }}>{member.name}</span>
+              <button
+                onClick={() => handleRemoveMember(member.member_id)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#2196F3",
+                  cursor: "pointer",
+                  fontSize: "1.2rem",
+                  lineHeight: "1",
+                  padding: "0 0.25rem"
+                }}
+                title="Remove"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Search/Add Input */}
+      <div style={{ position: "relative" }}>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          placeholder={`Search and add ${label.toLowerCase()}...`}
+          style={{
+            width: "100%",
+            padding: "0.75rem",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            fontSize: "1rem"
+          }}
+        />
+
+        {/* Dropdown */}
+        {showDropdown && filteredMembers.length > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              maxHeight: "200px",
+              overflowY: "auto",
+              backgroundColor: "white",
+              border: "1px solid #ccc",
+              borderTop: "none",
+              borderRadius: "0 0 4px 4px",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              zIndex: 10
+            }}
+          >
+            {filteredMembers.map(member => (
+              <div
+                key={member.member_id}
+                onClick={() => handleAddMember(member.member_id)}
+                style={{
+                  padding: "0.75rem",
+                  cursor: "pointer",
+                  borderBottom: "1px solid #f0f0f0",
+                  transition: "background-color 0.2s"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f5f5f5";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "white";
+                }}
+              >
+                <div style={{ fontWeight: "500" }}>{member.name}</div>
+                <div style={{ fontSize: "0.85rem", color: "#666" }}>
+                  {member.phone && `Phone: ${member.phone}`}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Click outside to close dropdown */}
+        {showDropdown && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 5
+            }}
+            onClick={() => setShowDropdown(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }

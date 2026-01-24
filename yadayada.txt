@@ -1,0 +1,62 @@
+curl -X POST https://robodex-backend.imsawant05.workers.dev/members/batch \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "member_ids": [
+      "d2edd832-10bc-41d6-8130-e96dd64bd42f",
+      "425e2b97-b3ae-4c59-9d54-2ea275dd5686"
+    ]
+  }'
+
+OUTPUT:
+[{"member_id": "d2edd832-10bc-41d6-8130-e96dd64bd42f", "name": "Ishaan", "phone": "8698600724"}, {"member_id": "425e2b97-b3ae-4c59-9d54-2ea275dd5686", "name": "Sparsh", "phone": "9868782772"}]
+
+# 2. GET ALL POOLS
+curl -X GET https://robodex-backend.imsawant05.workers.dev/pools \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+OUTPUT:
+[{"pool_id": "d08df5c1-aee2-4594-a05b-5a85df95d502", "name": "Protodex", "description": "Developing and maintaining Protodex - cross platform team management platform, that acts as a common source of truth for all members.", "managers": ["952dc522-02d2-4607-ace4-59c594c7c9b8", "e491d3ef-5ef2-4ad9-99f5-5b00af150bc2"], "created_at": "2026-01-24T16:20:07.008212+00:00"}]
+
+# 3. GET SPECIFIC POOL DETAILS 
+curl -X GET https://robodex-backend.imsawant05.workers.dev/pool/d08df5c1-aee2-4594-a05b-5a85df95d502 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+OUTPUT:
+{"pool_id": "d08df5c1-aee2-4594-a05b-5a85df95d502", "name": "Protodex", "description": "Developing and maintaining Protodex - cross platform team management platform, that acts as a common source of truth for all members.", "managers": [{"member_id": "e491d3ef-5ef2-4ad9-99f5-5b00af150bc2", "name": "Harshit Sehgal"}, {"member_id": "952dc522-02d2-4607-ace4-59c594c7c9b8", "name": "Jyotishman Das"}], "created_at": "2026-01-24T16:20:07.008212+00:00"}
+
+# 4. CREATE NEW POOL
+curl -X POST https://robodex-backend.imsawant05.workers.dev/pool \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Electronics Lab Equipment",
+    "description": "Pool of electronics components and tools",
+    "managers": [
+      "952dc522-02d2-4607-ace4-59c594c7c9b8",
+      "a1b2c3d4-e5f6-4789-a012-3456789abcde"
+    ]
+  }'
+
+# 5. UPDATE POOL
+curl -X PATCH https://robodex-backend.imsawant05.workers.dev/pool/7f8e9d0c-1a2b-4c3d-8e9f-0a1b2c3d4e5f \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Updated Pool Name",
+    "description": "Updated description",
+    "managers": [
+      "952dc522-02d2-4607-ace4-59c594c7c9b8"
+    ]
+  }'
+
+# 6. DELETE POOL
+curl -X DELETE https://robodex-backend.imsawant05.workers.dev/pool/7f8e9d0c-1a2b-4c3d-8e9f-0a1b2c3d4e5f \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# 7. PROJECT DETAILS
+curl https://robodex-backend.imsawant05.workers.dev/projects/d6175b12-70c5-49d6-9430-c371b00e748f \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+OUTPUT:
+{"project_id": "d6175b12-70c5-49d6-9430-c371b00e748f", "project_name": "Miscellaneous_test", "notion_page_id": "https://luck-dandelion-78f.notion.site/ebd//2f0e9b576e8c80998098c23fa2e60359", "github_repo": "ComputerSocietyVITC/club-website-26", "doc_urls": [{"url": "https://drive.google.com/file/d/1eM_W-5YmeOpjGJv0pqvvKbICGuz96uZK/view?usp=drive_link", "name": "Some File 1"}, {"url": "https://docs.google.com/document/d/1I25st3sIKu7uW13cOfokWA6b3NMEpV_NS7IBCZts35U/edit?usp=drive_link", "name": "Some File 2"}, {"url": "https://docs.google.com/presentation/d/1eV8J_Ay1Fczsk42mIrjJ0dtQgC5tAm1f/edit?usp=drive_link&ouid=114564236754749833408&rtpof=true&sd=true", "name": "Some File 3"}], "members": ["e491d3ef-5ef2-4ad9-99f5-5b00af150bc2", "425e2b97-b3ae-4c59-9d54-2ea275dd5686"], "managers": ["d2edd832-10bc-41d6-8130-e96dd64bd42f"], "pool": "d08df5c1-aee2-4594-a05b-5a85df95d502", "description": "testing the working of misc stuff through this :)}

@@ -354,6 +354,86 @@ class Default(WorkerEntrypoint):
                 }, SUPABASE_URL, SUPABASE_KEY)
                 return Response.json({"success": True}, headers=cors_headers)
             
+            if path == "members/batch" and method == "POST":
+                body = await request.json()
+                member_ids = body.get("member_ids", [])
+                
+                data = await sb_post("rpc/get_members_by_ids", {
+                    "p_member_ids": member_ids
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                return Response.json(result, headers=cors_headers)
+
+         # ---- GET POOL DETAILS ----
+            if path.startswith("pool/") and method == "GET":
+                pool_id = path.split("/")[1]
+                
+                data = await sb_post("rpc/get_pool_details", {
+                    "p_pool_id": pool_id
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                
+                if result is None:
+                    return Response("Pool not found", status=404, headers=cors_headers)
+                
+                return Response.json(result, headers=cors_headers)
+
+            # ---- GET ALL POOLS ----
+            if path == "pools" and method == "GET":
+                data = await sb_get("pool?select=*", SUPABASE_URL, SUPABASE_KEY)
+                return Response.json(data, headers=cors_headers)
+
+            # ---- CREATE POOL ----
+            if path == "pool" and method == "POST":
+                body = await request.json()
+                
+                await sb_post("pool", {
+                    "name": body["name"],
+                    "description": body.get("description", ""),
+                    "managers": body.get("managers", [])
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                return Response.json({"success": True}, headers=cors_headers)
+
+            # ---- UPDATE POOL ----
+            if path.startswith("pool/") and method == "PATCH":
+                pool_id = path.split("/")[1]
+                body = await request.json()
+                
+                # Build update query
+                update_data = {}
+                if "name" in body:
+                    update_data["name"] = body["name"]
+                if "description" in body:
+                    update_data["description"] = body["description"]
+                if "managers" in body:
+                    update_data["managers"] = body["managers"]
+                
+                await sb_post(f"pool?pool_id=eq.{pool_id}", update_data, SUPABASE_URL, SUPABASE_KEY)
+                
+                return Response.json({"success": True}, headers=cors_headers)
+
+            # ---- DELETE POOL ----
+            if path.startswith("pool/") and method == "DELETE":
+                pool_id = path.split("/")[1]
+                
+                res = await pyfetch(
+                    f"{SUPABASE_URL}/rest/v1/pool?pool_id=eq.{pool_id}",
+                    method="DELETE",
+                    headers={
+                        "apikey": SUPABASE_KEY,
+                        "Authorization": f"Bearer {SUPABASE_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                )
+                
+                if not res.ok:
+                    return Response("Failed to delete pool", status=500, headers=cors_headers)
+                
+                return Response.json({"success": True}, headers=cors_headers)
+            
             # ---- UPDATE PASSWORD ----
             if path == "update-password" and method == "POST":
                 body = await request.json()
