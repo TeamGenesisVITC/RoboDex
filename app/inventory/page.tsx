@@ -29,6 +29,7 @@ export default function InventoryPage() {
   const [projectId, setProjectId] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loadingItem, setLoadingItem] = useState(false);
   const { addToCart, getTotalItems } = useCart();
   const router = useRouter();
 
@@ -87,14 +88,49 @@ export default function InventoryPage() {
     .sort((a, b) => b.searchScore - a.searchScore);
 
   const openItemModal = async (item: InventoryItem) => {
+    setLoadingItem(true);
     try {
       const data = await api<ItemDetailsExtended[]>(`registry?item_no=eq.${item.item_no}`);
+      
       if (data && data.length > 0) {
-        setSelectedItem(data[0]);
+        // Find the exact matching item by item_no
+        const matchedItem = data.find(i => i.item_no === item.item_no) || data[0];
+        
+        console.log('Clicked item:', item.item_no, item.name);
+        console.log('Fetched data:', data);
+        console.log('Selected item:', matchedItem);
+        
+        setSelectedItem(matchedItem);
+        setQuantity(1);
+      } else {
+        // Fallback: use the item data we already have
+        console.warn('No data returned from API, using clicked item data');
+        setSelectedItem({
+          item_no: item.item_no,
+          name: item.name,
+          quantity: item.quantity,
+          available: item.available,
+          price: item.price,
+          location: item.location,
+          resources: item.resources
+        });
         setQuantity(1);
       }
     } catch (err) {
       console.error("Failed to load item details:", err);
+      // Fallback: use the item data from the grid
+      setSelectedItem({
+        item_no: item.item_no,
+        name: item.name,
+        quantity: item.quantity,
+        available: item.available,
+        price: item.price,
+        location: item.location,
+        resources: item.resources
+      });
+      setQuantity(1);
+    } finally {
+      setLoadingItem(false);
     }
   };
 
@@ -125,7 +161,9 @@ export default function InventoryPage() {
 
       alert("Item issued successfully!");
       closeModal();
-      api<InventoryItem[]>("registry").then(setItems);
+      // Refresh inventory
+      const updatedItems = await api<InventoryItem[]>("registry");
+      setItems(updatedItems);
     } catch (err) {
       alert("Failed to issue item: " + (err as Error).message);
     }
@@ -422,7 +460,7 @@ export default function InventoryPage() {
       </div>
 
       {/* Modal */}
-      {selectedItem && (
+      {selectedItem && !loadingItem && (
         <div
           style={{
             position: "fixed",
@@ -674,7 +712,7 @@ export default function InventoryPage() {
                 }}
                 onMouseEnter={(e) => {
                   if (selectedItem.available > 0) {
-                    e.currentTarget.style.backgroundColor = "#5b1be3";
+                    e.currentTarget.style.backgroundColor = "#4a0fbf";
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -744,6 +782,28 @@ export default function InventoryPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Loading Modal */}
+      {loadingItem && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000
+          }}
+        >
+          <div style={{ color: "#fff", fontSize: "1.2rem" }}>Loading item details...</div>
         </div>
       )}
     </main>

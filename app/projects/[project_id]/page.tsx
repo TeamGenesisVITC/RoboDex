@@ -30,7 +30,10 @@ interface GitHubIssue {
   html_url: string;
   state: string;
   created_at: string;
-  pull_request?: any;
+  pull_request?: {
+    url: string;
+    html_url: string;
+  };
   assignee?: {
     login: string;
     avatar_url: string;

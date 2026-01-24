@@ -150,7 +150,7 @@ class Default(WorkerEntrypoint):
                 }, headers=cors_headers)
 
             # ---- INVENTORY ----
-            if path == "registry" and method == "GET":
+            if path == "registry" or path.startswith("registry"):
                 # Parse query string for filters
                 query_params = ""
                 if "?" in request.url:

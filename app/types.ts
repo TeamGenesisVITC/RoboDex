@@ -5,6 +5,7 @@ export interface InventoryItem {
   available: number;
   price: number | null;
   location: string | null;
+  resources: string | null;
 }
 
 export interface IssueRow {
