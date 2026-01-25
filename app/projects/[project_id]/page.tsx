@@ -113,6 +113,7 @@ export default function ProjectPage({ params }: Props) {
   const [project, setProject] = useState<Project | null>(null);
   const [analytics, setAnalytics] = useState<ProjectItem[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [allMembers, setAllMembers] = useState<Member[]>([]); // All members from /members endpoint
   const [poolInfo, setPoolInfo] = useState<Pool | null>(null);
   const [githubIssues, setGithubIssues] = useState<GitHubIssue[]>([]);
   const [githubPRs, setGithubPRs] = useState<GitHubPR[]>([]);
@@ -168,23 +169,23 @@ export default function ProjectPage({ params }: Props) {
         const analyticsData = await api<ProjectItem[]>(`projects/${project_id}/analytics`);
         setAnalytics(analyticsData);
 
-        // Fetch members data if member IDs are available
-        if (projectData.members && projectData.members.length > 0) {
-          const allMemberIds = [
-            ...(projectData.managers || []),
-            ...(projectData.members || [])
-          ];
-          const uniqueMemberIds = [...new Set(allMemberIds)];
+        // Fetch ALL members from the system first
+        try {
+          const allMembersData = await api<Member[]>(`members`);
+          setAllMembers(allMembersData);
           
-          try {
-            const membersData = await api<Member[]>(`members/batch`, {
-              method: "POST",
-              body: JSON.stringify({ member_ids: uniqueMemberIds })
-            });
-            setMembers(membersData);
-          } catch (err) {
-            console.error("Failed to fetch members:", err);
+          // Filter to get only project members from allMembers (this includes department)
+          if (projectData.members && projectData.members.length > 0) {
+            const allMemberIds = [
+              ...(projectData.managers || []),
+              ...(projectData.members || [])
+            ];
+            const uniqueMemberIds = new Set(allMemberIds);
+            const projectMembers = allMembersData.filter(m => uniqueMemberIds.has(m.member_id));
+            setMembers(projectMembers);
           }
+        } catch (err) {
+          console.error("Failed to fetch all members:", err);
         }
 
         // Fetch pool info if pool ID is available
@@ -286,9 +287,9 @@ export default function ProjectPage({ params }: Props) {
   const managerMembers = members.filter(m => managerIds.has(m.member_id));
   const regularMembers = members.filter(m => !managerIds.has(m.member_id));
   
-  // Get all unique keys from members data (for dynamic columns)
+  // Get all unique keys from members data (for dynamic columns), excluding member_id and password
   const memberKeys = members.length > 0 
-    ? Array.from(new Set(members.flatMap(m => Object.keys(m))))
+    ? Array.from(new Set(members.flatMap(m => Object.keys(m)))).filter(key => key !== 'member_id' && key !== 'password')
     : [];
 
   // GitHub stats
@@ -387,45 +388,53 @@ export default function ProjectPage({ params }: Props) {
                         {key.replace(/_/g, ' ')}
                       </th>
                     ))}
-                    <th style={{ padding: "1rem", textAlign: "left", border: "1px solid #ddd", fontWeight: "600" }}>
-                      Role
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Managers first */}
+                  {/* Managers first - highlighted */}
                   {managerMembers.map(member => (
                     <tr key={member.member_id} style={{ backgroundColor: "#fffbf0" }}>
                       {memberKeys.map(key => (
-                        <td key={key} style={{ padding: "1rem", border: "1px solid #ddd" }}>
+                        <td key={key} style={{ 
+                          padding: "1rem", 
+                          border: "1px solid #ddd",
+                          fontWeight: key === 'name' ? "600" : "normal"
+                        }}>
                           {member[key] || '—'}
                         </td>
                       ))}
-                      <td style={{ 
-                        padding: "1rem", 
-                        border: "1px solid #ddd",
-                        fontWeight: "600",
-                        color: "#d97706"
-                      }}>
-                        Manager
-                      </td>
                     </tr>
                   ))}
                   {/* Regular members */}
                   {regularMembers.map(member => (
                     <tr key={member.member_id}>
                       {memberKeys.map(key => (
-                        <td key={key} style={{ padding: "1rem", border: "1px solid #ddd" }}>
+                        <td key={key} style={{ 
+                          padding: "1rem", 
+                          border: "1px solid #ddd",
+                          fontWeight: key === 'name' ? "600" : "normal"
+                        }}>
                           {member[key] || '—'}
                         </td>
                       ))}
-                      <td style={{ padding: "1rem", border: "1px solid #ddd", color: "#666" }}>
-                        Member
-                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+            
+            {/* Legend */}
+            <div style={{ marginTop: "0.75rem", fontSize: "0.9rem", color: "#666" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <div style={{ 
+                  width: "20px", 
+                  height: "20px", 
+                  backgroundColor: "#fffbf0", 
+                  border: "1px solid #ddd",
+                  borderRadius: "2px"
+                }} />
+                <span>Manager</span>
+              </div>
             </div>
           </div>
         )}
@@ -634,14 +643,14 @@ export default function ProjectPage({ params }: Props) {
             <MemberSelector
               label="Managers"
               selectedIds={editedProject.managers || []}
-              allMembers={members}
+              allMembers={allMembers}
               onChange={(ids) => setEditedProject({ ...editedProject, managers: ids })}
             />
 
             <MemberSelector
               label="Members"
               selectedIds={editedProject.members || []}
-              allMembers={members}
+              allMembers={allMembers}
               onChange={(ids) => setEditedProject({ ...editedProject, members: ids })}
             />
 

@@ -365,6 +365,10 @@ class Default(WorkerEntrypoint):
                 result = await data.json()
                 return Response.json(result, headers=cors_headers)
 
+            if path == "members" and method == "GET":
+                data = await sb_get("members?select=*", SUPABASE_URL, SUPABASE_KEY)
+                return Response.json(data, headers=cors_headers)
+
          # ---- GET POOL DETAILS ----
             if path.startswith("pool/") and method == "GET":
                 pool_id = path.split("/")[1]
