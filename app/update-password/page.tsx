@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../lib/api";
 import { useRouter } from "next/navigation";
+import { KeyRound, Check, X, User } from "lucide-react";
 
 interface MemberInfo {
   member_id: string;
@@ -91,23 +92,120 @@ export default function UpdatePasswordPage() {
 
   if (!memberInfo) {
     return (
-      <main style={{ padding: "2rem", maxWidth: "500px", margin: "0 auto" }}>
-        <p>Loading...</p>
+      <main style={{ 
+        padding: "2rem", 
+        minHeight: "100vh",
+        backgroundColor: "#1a1a1a",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "'Montserrat', sans-serif"
+      }}>
+        <p style={{ color: "#888", fontSize: "1.1rem" }}>Loading...</p>
       </main>
     );
   }
 
   return (
-    <main style={{ padding: "2rem", maxWidth: "500px", margin: "0 auto" }}>
-      <h1>Update Password</h1>
-      <p style={{ marginBottom: "2rem", color: "#666" }}>
-        Logged in as: <strong>{memberInfo.name}</strong>
-      </p>
+    <main style={{ 
+      padding: "2rem", 
+      minHeight: "100vh",
+      backgroundColor: "#1a1a1a",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: "'Montserrat', sans-serif"
+    }}>
+      <div style={{
+        width: "100%",
+        maxWidth: "500px",
+        backgroundColor: "#2a2a2a",
+        borderRadius: "12px",
+        border: "1px solid #3a3a3a",
+        padding: "2.5rem",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"
+      }}>
+        {/* Header */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
+          marginBottom: "0.5rem"
+        }}>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "50%",
+            backgroundColor: "#5b1be3",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}>
+            <KeyRound size={24} color="#ffffff" />
+          </div>
+          <h1 style={{
+            margin: 0,
+            color: "#e0e0e0",
+            fontSize: "1.75rem",
+            fontWeight: "600"
+          }}>
+            Update Password
+          </h1>
+        </div>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-        <div>
-          <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-            Current Password:
+        {/* User Info */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.75rem",
+          padding: "1rem",
+          backgroundColor: "#1a1a1a",
+          borderRadius: "8px",
+          border: "1px solid #3a3a3a",
+          marginBottom: "2rem"
+        }}>
+          <div style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            backgroundColor: "#8550e9",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}>
+            <User size={18} color="#ffffff" />
+          </div>
+          <div>
+            <p style={{ 
+              margin: 0, 
+              color: "#888", 
+              fontSize: "0.85rem" 
+            }}>
+              Logged in as
+            </p>
+            <p style={{ 
+              margin: 0, 
+              color: "#e0e0e0", 
+              fontWeight: "600",
+              fontSize: "1rem"
+            }}>
+              {memberInfo.name}
+            </p>
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          <div>
+            <label style={{ 
+              display: "block", 
+              marginBottom: "0.5rem", 
+              fontWeight: "500",
+              color: "#c0c0c0",
+              fontSize: "0.95rem"
+            }}>
+              Current Password
+            </label>
             <input
               type="password"
               value={currentPassword}
@@ -115,18 +213,32 @@ export default function UpdatePasswordPage() {
               required
               style={{
                 width: "100%",
-                padding: "0.75rem",
-                marginTop: "0.25rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
+                padding: "0.875rem",
+                backgroundColor: "#1a1a1a",
+                border: "1px solid #3a3a3a",
+                borderRadius: "8px",
+                color: "#e0e0e0",
+                fontSize: "1rem",
+                fontFamily: "'Montserrat', sans-serif",
+                outline: "none",
+                transition: "border-color 0.2s ease",
+                boxSizing: "border-box"
               }}
+              onFocus={(e) => e.currentTarget.style.borderColor = "#5b1be3"}
+              onBlur={(e) => e.currentTarget.style.borderColor = "#3a3a3a"}
             />
-          </label>
-        </div>
+          </div>
 
-        <div>
-          <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-            New Password:
+          <div>
+            <label style={{ 
+              display: "block", 
+              marginBottom: "0.5rem", 
+              fontWeight: "500",
+              color: "#c0c0c0",
+              fontSize: "0.95rem"
+            }}>
+              New Password
+            </label>
             <input
               type="password"
               value={newPassword}
@@ -135,19 +247,35 @@ export default function UpdatePasswordPage() {
               minLength={6}
               style={{
                 width: "100%",
-                padding: "0.75rem",
-                marginTop: "0.25rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
+                padding: "0.875rem",
+                backgroundColor: "#1a1a1a",
+                border: "1px solid #3a3a3a",
+                borderRadius: "8px",
+                color: "#e0e0e0",
+                fontSize: "1rem",
+                fontFamily: "'Montserrat', sans-serif",
+                outline: "none",
+                transition: "border-color 0.2s ease",
+                boxSizing: "border-box"
               }}
+              onFocus={(e) => e.currentTarget.style.borderColor = "#5b1be3"}
+              onBlur={(e) => e.currentTarget.style.borderColor = "#3a3a3a"}
             />
-          </label>
-          <small style={{ color: "#666" }}>Minimum 6 characters</small>
-        </div>
+            <small style={{ color: "#888", fontSize: "0.85rem" }}>
+              Minimum 6 characters
+            </small>
+          </div>
 
-        <div>
-          <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-            Confirm New Password:
+          <div>
+            <label style={{ 
+              display: "block", 
+              marginBottom: "0.5rem", 
+              fontWeight: "500",
+              color: "#c0c0c0",
+              fontSize: "0.95rem"
+            }}>
+              Confirm New Password
+            </label>
             <input
               type="password"
               value={confirmPassword}
@@ -156,78 +284,107 @@ export default function UpdatePasswordPage() {
               minLength={6}
               style={{
                 width: "100%",
-                padding: "0.75rem",
-                marginTop: "0.25rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
+                padding: "0.875rem",
+                backgroundColor: "#1a1a1a",
+                border: "1px solid #3a3a3a",
+                borderRadius: "8px",
+                color: "#e0e0e0",
+                fontSize: "1rem",
+                fontFamily: "'Montserrat', sans-serif",
+                outline: "none",
+                transition: "border-color 0.2s ease",
+                boxSizing: "border-box"
               }}
+              onFocus={(e) => e.currentTarget.style.borderColor = "#5b1be3"}
+              onBlur={(e) => e.currentTarget.style.borderColor = "#3a3a3a"}
             />
-          </label>
-        </div>
-
-        {error && (
-          <div
-            style={{
-              padding: "1rem",
-              backgroundColor: "#ffebee",
-              color: "#c62828",
-              borderRadius: "4px",
-              border: "1px solid #ef5350",
-            }}
-          >
-            {error}
           </div>
-        )}
 
-        {success && (
-          <div
-            style={{
-              padding: "1rem",
-              backgroundColor: "#e8f5e9",
-              color: "#2e7d32",
-              borderRadius: "4px",
-              border: "1px solid #66bb6a",
-            }}
-          >
-            Password updated successfully! Redirecting...
+          {error && (
+            <div
+              style={{
+                padding: "1rem",
+                backgroundColor: "#2d1a1a",
+                color: "#ff6b6b",
+                borderRadius: "8px",
+                border: "1px solid #4a2020",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem"
+              }}
+            >
+              <X size={20} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div
+              style={{
+                padding: "1rem",
+                backgroundColor: "#1a2d1a",
+                color: "#66bb6a",
+                borderRadius: "8px",
+                border: "1px solid #204a20",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem"
+              }}
+            >
+              <Check size={20} />
+              <span>Password updated successfully! Redirecting...</span>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
+            <button
+              type="submit"
+              style={{
+                flex: 1,
+                padding: "1rem",
+                backgroundColor: "#5b1be3",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "1rem",
+                fontWeight: "600",
+                fontFamily: "'Montserrat', sans-serif",
+                transition: "background-color 0.2s ease"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#6d2ef5"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#5b1be3"}
+            >
+              Update Password
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/inventory")}
+              style={{
+                flex: 1,
+                padding: "1rem",
+                backgroundColor: "#3a3a3a",
+                color: "#e0e0e0",
+                border: "1px solid #4a4a4a",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "1rem",
+                fontWeight: "500",
+                fontFamily: "'Montserrat', sans-serif",
+                transition: "background-color 0.2s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#4a4a4a";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#3a3a3a";
+              }}
+            >
+              Cancel
+            </button>
           </div>
-        )}
-
-        <div style={{ display: "flex", gap: "1rem" }}>
-          <button
-            type="submit"
-            style={{
-              flex: 1,
-              padding: "1rem",
-              backgroundColor: "#4CAF50",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "1rem",
-              fontWeight: "bold",
-            }}
-          >
-            Update Password
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/inventory")}
-            style={{
-              flex: 1,
-              padding: "1rem",
-              backgroundColor: "#757575",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "1rem",
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </main>
   );
 }
