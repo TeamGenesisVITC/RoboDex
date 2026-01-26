@@ -353,7 +353,7 @@ export default function ProjectPage({ params }: Props) {
           }}>
             {project.project_name}
           </h1>
-          {poolInfo && (
+          {/* {poolInfo && (
             <div style={{ 
               padding: "0.5rem 1rem", 
               backgroundColor: "#2a2a2a",
@@ -364,7 +364,7 @@ export default function ProjectPage({ params }: Props) {
             }}>
               Pool: <strong style={{ color: "#8550e9" }}>{poolInfo.name}</strong>
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Tabs */}
