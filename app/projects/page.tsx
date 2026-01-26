@@ -58,8 +58,18 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <main style={{ padding: "2rem" }}>
-        <div style={{ textAlign: "center", padding: "3rem", color: "#666" }}>
+      <main style={{
+        minHeight: "100vh",
+        backgroundColor: "#1a1a1a",
+        padding: "2rem",
+        fontFamily: "'Montserrat', sans-serif"
+      }}>
+        <div style={{ 
+          textAlign: "center", 
+          padding: "3rem", 
+          color: "#888",
+          fontSize: "1.2rem"
+        }}>
           Loading projects...
         </div>
       </main>
@@ -72,89 +82,137 @@ export default function ProjectsPage() {
     const poolProjects = getProjectsForPool(selectedPool);
 
     return (
-      <main style={{ padding: "2rem" }}>
-        <button
-          onClick={() => setSelectedPool(null)}
-          style={{
-            padding: "0.75rem 1.5rem",
-            backgroundColor: "#f5f5f5",
-            border: "1px solid #ddd",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "1rem",
-            marginBottom: "1.5rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem"
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#e8e8e8";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#f5f5f5";
-          }}
-        >
-          ← Back to Pools
-        </button>
+      <main style={{
+        minHeight: "100vh",
+        backgroundColor: "#1a1a1a",
+        padding: "2rem",
+        fontFamily: "'Montserrat', sans-serif"
+      }}>
+        <div style={{
+          maxWidth: "1400px",
+          margin: "0 auto"
+        }}>
+          <button
+            onClick={() => setSelectedPool(null)}
+            style={{
+              padding: "0.75rem 1.5rem",
+              backgroundColor: "#2a2a2a",
+              border: "1px solid #3a3a3a",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "1rem",
+              color: "#e0e0e0",
+              marginBottom: "2rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              fontFamily: "'Montserrat', sans-serif",
+              transition: "all 0.3s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#2d2d2d";
+              e.currentTarget.style.borderColor = "#5b1be3";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#2a2a2a";
+              e.currentTarget.style.borderColor = "#3a3a3a";
+            }}
+          >
+            ← Back to Pools
+          </button>
 
-        <div style={{ marginBottom: "2rem" }}>
-          <h1 style={{ marginBottom: "0.5rem" }}>{pool?.name}</h1>
-          {pool?.description && (
-            <p style={{ color: "#666", fontSize: "1.1rem" }}>{pool.description}</p>
+          <div style={{ marginBottom: "2rem" }}>
+            <h1 style={{ 
+              color: "#8550e9", 
+              fontSize: "2.5rem",
+              fontWeight: "600",
+              letterSpacing: "0.5px",
+              marginBottom: "0.5rem" 
+            }}>
+              {pool?.name}
+            </h1>
+            {pool?.description && (
+              <p style={{ 
+                color: "#888", 
+                fontSize: "1.1rem",
+                lineHeight: "1.6"
+              }}>
+                {pool.description}
+              </p>
+            )}
+          </div>
+
+          {poolProjects.length === 0 ? (
+            <div style={{ 
+              textAlign: "center", 
+              padding: "3rem",
+              backgroundColor: "#2a2a2a",
+              borderRadius: "8px",
+              border: "1px solid #3a3a3a"
+            }}>
+              <p style={{ color: "#888", fontSize: "1.1rem" }}>
+                No projects in this pool yet.
+              </p>
+            </div>
+          ) : (
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
+              gap: "1.5rem" 
+            }}>
+              {poolProjects.map(project => (
+                <div
+                  key={project.project_id}
+                  onClick={() => router.push(`/projects/${project.project_id}`)}
+                  style={{
+                    backgroundColor: "#2a2a2a",
+                    border: "1px solid #3a3a3a",
+                    borderRadius: "6px",
+                    padding: "1.5rem",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    position: "relative"
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.backgroundColor = "#2d2d2d";
+                    e.currentTarget.style.borderColor = "#5b1be3";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 8px 16px rgba(139, 122, 184, 0.15)";
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = "#2a2a2a";
+                    e.currentTarget.style.borderColor = "#3a3a3a";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  <h3 style={{ 
+                    color: "#ffffff",
+                    fontSize: "1.125rem",
+                    fontWeight: "600",
+                    marginBottom: "0.75rem",
+                    lineHeight: "1.4"
+                  }}>
+                    {project.project_name}
+                  </h3>
+                  {project.description && (
+                    <p style={{ 
+                      color: "#888", 
+                      fontSize: "0.9rem", 
+                      lineHeight: "1.5",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden"
+                    }}>
+                      {project.description}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
-
-        {poolProjects.length === 0 ? (
-          <div style={{ 
-            textAlign: "center", 
-            padding: "3rem", 
-            backgroundColor: "#f9f9f9",
-            borderRadius: "8px",
-            border: "1px solid #e0e0e0"
-          }}>
-            <p style={{ color: "#888", fontSize: "1.1rem" }}>No projects in this pool yet.</p>
-          </div>
-        ) : (
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", 
-            gap: "1rem" 
-          }}>
-            {poolProjects.map(project => (
-              <div
-                key={project.project_id}
-                onClick={() => router.push(`/projects/${project.project_id}`)}
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "1.5rem",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  backgroundColor: "#f9f9f9",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = "#e8f5e9";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.backgroundColor = "#f9f9f9";
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-              >
-                <h3 style={{ marginBottom: "0.5rem", color: "#333" }}>
-                  {project.project_name}
-                </h3>
-                {project.description && (
-                  <p style={{ color: "#666", fontSize: "0.9rem", lineHeight: "1.5" }}>
-                    {project.description}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
       </main>
     );
   }
@@ -163,163 +221,213 @@ export default function ProjectsPage() {
   const projectsWithoutPool = getProjectsWithoutPool();
 
   return (
-    <main style={{ padding: "2rem" }}>
-      <h1 style={{ marginBottom: "2rem" }}>Project Pools</h1>
-
-      {/* Pools Grid */}
-      <div style={{ 
-        display: "grid", 
-        gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", 
-        gap: "1.5rem",
-        marginBottom: "3rem"
+    <main style={{
+      minHeight: "100vh",
+      backgroundColor: "#1a1a1a",
+      padding: "2rem",
+      fontFamily: "'Montserrat', sans-serif"
+    }}>
+      <div style={{
+        maxWidth: "1400px",
+        margin: "0 auto"
       }}>
-        {pools.map(pool => {
-          const poolProjectCount = getProjectsForPool(pool.pool_id).length;
-          
-          return (
-            <div
-              key={pool.pool_id}
-              onClick={() => setSelectedPool(pool.pool_id)}
-              style={{
-                border: "2px solid #e0e0e0",
-                padding: "2rem",
-                borderRadius: "12px",
-                cursor: "pointer",
-                backgroundColor: "#ffffff",
-                transition: "all 0.3s",
-                position: "relative"
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "#4CAF50";
-                e.currentTarget.style.transform = "translateY(-4px)";
-                e.currentTarget.style.boxShadow = "0 6px 16px rgba(76, 175, 80, 0.2)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = "#e0e0e0";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "none";
-              }}
-            >
-              {/* Project Count Badge */}
-              <div style={{
-                position: "absolute",
-                top: "1rem",
-                right: "1rem",
-                backgroundColor: "#4CAF50",
-                color: "white",
-                padding: "0.25rem 0.75rem",
-                borderRadius: "12px",
-                fontSize: "0.85rem",
-                fontWeight: "600"
-              }}>
-                {poolProjectCount} {poolProjectCount === 1 ? 'project' : 'projects'}
-              </div>
+        <h1 style={{ 
+          color: "#8550e9",
+          fontSize: "2.5rem",
+          fontWeight: "600",
+          letterSpacing: "0.5px",
+          marginBottom: "2rem"
+        }}>
+          Projects
+        </h1>
 
-              <h2 style={{ 
-                marginBottom: "1rem", 
-                color: "#2c3e50",
-                fontSize: "1.5rem",
-                paddingRight: "5rem" // Space for badge
-              }}>
-                {pool.name}
-              </h2>
-              
-              {pool.description && (
-                <p style={{ 
-                  color: "#666", 
-                  fontSize: "1rem", 
-                  lineHeight: "1.6",
-                  marginBottom: "1rem"
-                }}>
-                  {pool.description}
-                </p>
-              )}
-
-              <div style={{
-                marginTop: "1.5rem",
-                paddingTop: "1rem",
-                borderTop: "1px solid #e0e0e0",
-                color: "#4CAF50",
-                fontSize: "0.9rem",
-                fontWeight: "600",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem"
-              }}>
-                View Projects →
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Projects without a pool */}
-      {projectsWithoutPool.length > 0 && (
-        <div style={{ marginTop: "3rem" }}>
-          <h2 style={{ 
-            marginBottom: "1rem",
-            paddingBottom: "0.5rem",
-            borderBottom: "2px solid #e0e0e0"
-          }}>
-            Unassigned Projects
-          </h2>
-          <p style={{ color: "#666", marginBottom: "1.5rem" }}>
-            These projects are not assigned to any pool.
-          </p>
-          
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", 
-            gap: "1rem" 
-          }}>
-            {projectsWithoutPool.map(project => (
+        {/* Pools Grid */}
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", 
+          gap: "1.5rem",
+          marginBottom: "3rem"
+        }}>
+          {pools.map(pool => {
+            const poolProjectCount = getProjectsForPool(pool.pool_id).length;
+            
+            return (
               <div
-                key={project.project_id}
-                onClick={() => router.push(`/projects/${project.project_id}`)}
+                key={pool.pool_id}
+                onClick={() => setSelectedPool(pool.pool_id)}
                 style={{
-                  border: "1px solid #ccc",
-                  padding: "1.5rem",
+                  backgroundColor: "#2a2a2a",
+                  border: "1px solid #3a3a3a",
                   borderRadius: "8px",
+                  padding: "2rem",
                   cursor: "pointer",
-                  backgroundColor: "#f9f9f9",
-                  transition: "all 0.2s",
+                  transition: "all 0.3s ease",
+                  position: "relative"
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = "#fff3e0";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
+                  e.currentTarget.style.backgroundColor = "#2d2d2d";
+                  e.currentTarget.style.borderColor = "#5b1be3";
+                  e.currentTarget.style.transform = "translateY(-4px)";
+                  e.currentTarget.style.boxShadow = "0 8px 20px rgba(139, 122, 184, 0.2)";
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.backgroundColor = "#f9f9f9";
+                  e.currentTarget.style.backgroundColor = "#2a2a2a";
+                  e.currentTarget.style.borderColor = "#3a3a3a";
                   e.currentTarget.style.transform = "translateY(0)";
                   e.currentTarget.style.boxShadow = "none";
                 }}
               >
-                <h3 style={{ marginBottom: "0.5rem", color: "#333" }}>
-                  {project.project_name}
-                </h3>
-                {project.description && (
-                  <p style={{ color: "#666", fontSize: "0.9rem", lineHeight: "1.5" }}>
-                    {project.description}
+                {/* Project Count Badge */}
+                <div style={{
+                  position: "absolute",
+                  top: "1rem",
+                  right: "1rem",
+                  backgroundColor: "#5b1be3",
+                  color: "white",
+                  padding: "0.25rem 0.75rem",
+                  borderRadius: "12px",
+                  fontSize: "0.85rem",
+                  fontWeight: "600"
+                }}>
+                  {poolProjectCount} {poolProjectCount === 1 ? 'project' : 'projects'}
+                </div>
+
+                <h2 style={{ 
+                  color: "#b19cd9",
+                  fontSize: "1.5rem",
+                  fontWeight: "600",
+                  marginBottom: "1rem",
+                  paddingRight: "5rem" // Space for badge
+                }}>
+                  {pool.name}
+                </h2>
+                
+                {pool.description && (
+                  <p style={{ 
+                    color: "#888", 
+                    fontSize: "1rem", 
+                    lineHeight: "1.6",
+                    marginBottom: "1rem",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden"
+                  }}>
+                    {pool.description}
                   </p>
                 )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {pools.length === 0 && projectsWithoutPool.length === 0 && (
-        <div style={{ 
-          textAlign: "center", 
-          padding: "3rem", 
-          backgroundColor: "#f9f9f9",
-          borderRadius: "8px",
-          border: "1px solid #e0e0e0"
-        }}>
-          <p style={{ color: "#888", fontSize: "1.1rem" }}>No pools or projects found.</p>
+                <div style={{
+                  marginTop: "1.5rem",
+                  paddingTop: "1rem",
+                  borderTop: "1px solid #3a3a3a",
+                  color: "#8550e9",
+                  fontSize: "0.9rem",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem"
+                }}>
+                  View Projects →
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        {/* Projects without a pool */}
+        {projectsWithoutPool.length > 0 && (
+          <div style={{ marginTop: "3rem" }}>
+            <h2 style={{ 
+              color: "#b19cd9",
+              fontSize: "1.75rem",
+              fontWeight: "600",
+              marginBottom: "1rem",
+              paddingBottom: "0.5rem",
+              borderBottom: "1px solid #3a3a3a"
+            }}>
+              Unassigned Projects
+            </h2>
+            <p style={{ 
+              color: "#888", 
+              marginBottom: "1.5rem",
+              fontSize: "0.95rem"
+            }}>
+              These projects are not assigned to any pool.
+            </p>
+            
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
+              gap: "1.5rem" 
+            }}>
+              {projectsWithoutPool.map(project => (
+                <div
+                  key={project.project_id}
+                  onClick={() => router.push(`/projects/${project.project_id}`)}
+                  style={{
+                    backgroundColor: "#2a2a2a",
+                    border: "1px solid #3a3a3a",
+                    borderRadius: "6px",
+                    padding: "1.5rem",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease"
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.backgroundColor = "#2d2d2d";
+                    e.currentTarget.style.borderColor = "#d97706";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 8px 16px rgba(217, 119, 6, 0.15)";
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = "#2a2a2a";
+                    e.currentTarget.style.borderColor = "#3a3a3a";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  <h3 style={{ 
+                    color: "#ffffff",
+                    fontSize: "1.125rem",
+                    fontWeight: "600",
+                    marginBottom: "0.75rem",
+                    lineHeight: "1.4"
+                  }}>
+                    {project.project_name}
+                  </h3>
+                  {project.description && (
+                    <p style={{ 
+                      color: "#888", 
+                      fontSize: "0.9rem", 
+                      lineHeight: "1.5",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden"
+                    }}>
+                      {project.description}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {pools.length === 0 && projectsWithoutPool.length === 0 && (
+          <div style={{ 
+            textAlign: "center", 
+            padding: "3rem",
+            backgroundColor: "#2a2a2a",
+            borderRadius: "8px",
+            border: "1px solid #3a3a3a"
+          }}>
+            <p style={{ color: "#888", fontSize: "1.1rem" }}>
+              No pools or projects found.
+            </p>
+          </div>
+        )}
+      </div>
     </main>
   );
 }
