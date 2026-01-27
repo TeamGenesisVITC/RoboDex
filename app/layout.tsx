@@ -6,7 +6,7 @@ import "./globals.css";
 import { CartProvider } from "./context/CartContext";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, Home, Package, ShoppingCart, TicketSlash, Bot, User, LogOut, KeyRound } from "lucide-react";
+import { Menu, X, Home, Package, ShoppingCart, TicketSlash, Bot, User, LogOut, KeyRound, CalendarDays } from "lucide-react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -68,6 +68,7 @@ export default function RootLayout({
     { name: "Cart", path: "/cart", icon: <ShoppingCart size={20} /> },
     { name: "Issues", path: "/issues", icon: <TicketSlash size={20} /> },
     { name: "Projects", path: "/projects", icon: <Bot size={20} /> },
+    { name: "Calendar", path: "/calendar", icon: <CalendarDays size={20} /> },
   ];
 
   const handleNavigate = (path: string) => {
@@ -99,6 +100,11 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <style>{`
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
       </head>
       <body 
         className={`${geistSans.variable} ${geistMono.variable}`}
@@ -192,15 +198,15 @@ export default function RootLayout({
                 borderRight: "1px solid #3a3a3a",
                 zIndex: 1000,
                 transition: "left 0.3s ease",
-                overflowY: "auto",
-                paddingTop: "1rem"
+                display: "flex",
+                flexDirection: "column"
               }}
             >
             {/* Logo/Title */}
             <div style={{
               padding: "1.5rem",
               borderBottom: "1px solid #3a3a3a",
-              marginBottom: "1rem"
+              flexShrink: 0
             }}>
               <h2 style={{
                 margin: 0,
@@ -220,8 +226,17 @@ export default function RootLayout({
               </p>
             </div>
 
-            {/* Menu Items */}
-            <nav style={{ padding: "0 1rem" }}>
+            {/* Menu Items - Scrollable */}
+            <nav style={{ 
+              padding: "1rem 1rem",
+              flex: 1,
+              overflowY: "auto",
+              overflowX: "hidden",
+              scrollbarWidth: "none", // Firefox
+              msOverflowStyle: "none", // IE and Edge
+            }}
+            className="hide-scrollbar"
+            >
               {menuItems.map((item) => {
                 const isActive = pathname === item.path || 
                                 (item.path !== "/" && pathname.startsWith(item.path));
@@ -273,13 +288,10 @@ export default function RootLayout({
 
             {/* Footer */}
             <div style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
               padding: "1rem",
               borderTop: "1px solid #3a3a3a",
-              backgroundColor: "#1a1a1a"
+              backgroundColor: "#1a1a1a",
+              flexShrink: 0
             }}>
               {/* User Info */}
               <div style={{

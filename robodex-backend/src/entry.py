@@ -465,6 +465,74 @@ class Default(WorkerEntrypoint):
                     "success": True,
                     "token": new_token
                 }, headers=cors_headers)
+            
+            # ---- GET ALL EVENTS ----
+            if path == "events" and method == "GET":
+                data = await sb_post("rpc/get_events", {}, SUPABASE_URL, SUPABASE_KEY)
+                result = await data.json()
+                return Response.json(result if result else [], headers=cors_headers)
+
+            # ---- GET SINGLE EVENT ----
+            if path.startswith("events/") and method == "GET":
+                event_id = path.split("/")[1]
+                
+                data = await sb_post("rpc/get_event", {
+                    "p_event_id": event_id
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                
+                if result is None:
+                    return Response("Event not found", status=404, headers=cors_headers)
+                
+                return Response.json(result, headers=cors_headers)
+
+            # ---- CREATE EVENT ----
+            if path == "events" and method == "POST":
+                body = await request.json()
+                
+                data = await sb_post("rpc/create_event", {
+                    "p_name": body["event_name"],
+                    "p_description": body.get("event_description", ""),
+                    "p_datetime": body["event_datetime"]
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                return Response.json(result, headers=cors_headers)
+
+            # ---- UPDATE EVENT ----
+            if path.startswith("events/") and method == "PATCH":
+                event_id = path.split("/")[1]
+                body = await request.json()
+                
+                data = await sb_post("rpc/update_event", {
+                    "p_event_id": event_id,
+                    "p_name": body.get("event_name"),
+                    "p_description": body.get("event_description"),
+                    "p_datetime": body.get("event_datetime")
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                
+                if result is None:
+                    return Response("Event not found", status=404, headers=cors_headers)
+                
+                return Response.json(result, headers=cors_headers)
+
+            # ---- DELETE EVENT ----
+            if path.startswith("events/") and method == "DELETE":
+                event_id = path.split("/")[1]
+                
+                data = await sb_post("rpc/delete_event", {
+                    "p_event_id": event_id
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                
+                if not result:
+                    return Response("Event not found", status=404, headers=cors_headers)
+                
+                return Response.json({"success": True}, headers=cors_headers)
 
             # ---- DEBUG ENDPOINT ----
             if path == "debug" and method == "GET":
