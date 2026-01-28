@@ -102,7 +102,7 @@ class Default(WorkerEntrypoint):
         # CORS headers
         cors_headers = {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS, DELETE",
             "Access-Control-Allow-Headers": "Content-Type, Authorization",
         }
 
@@ -502,14 +502,15 @@ class Default(WorkerEntrypoint):
 
             # ---- UPDATE EVENT ----
             if path.startswith("events/") and method == "PATCH":
+                # if not check_role(payload, ['admin']):
+                #     return Response("Forbidden: Admin access required", status=403, headers=cors_headers)
+                
                 event_id = path.split("/")[1]
                 body = await request.json()
                 
                 data = await sb_post("rpc/update_event", {
                     "p_event_id": event_id,
-                    "p_name": body.get("event_name"),
-                    "p_description": body.get("event_description"),
-                    "p_datetime": body.get("event_datetime")
+                    "p_updates": body  # Pass entire body as JSONB
                 }, SUPABASE_URL, SUPABASE_KEY)
                 
                 result = await data.json()
