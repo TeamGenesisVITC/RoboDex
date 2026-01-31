@@ -437,3 +437,135 @@ begin
   end loop;
 end;
 $$;
+
+CREATE TABLE IF NOT EXISTS kanban (
+    column_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    column_name TEXT NOT NULL,
+    color TEXT,
+    events UUID[] DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+DROP FUNCTION IF EXISTS upsert_kanban(JSONB);
+
+DROP FUNCTION IF EXISTS upsert_kanban(JSONB);
+
+CREATE OR REPLACE FUNCTION upsert_kanban(payload JSONB)
+RETURNS SETOF kanban AS $$
+DECLARE
+    cols TEXT := '';
+    vals TEXT := '';
+    updates TEXT := '';
+    k TEXT;
+    v JSONB;
+    has_column_id BOOLEAN := FALSE;
+    target_column_id UUID;
+BEGIN
+    -- Check if column_id exists in payload
+    has_column_id := payload ? 'column_id';
+    
+    IF has_column_id THEN
+        target_column_id := (payload->>'column_id')::uuid;
+    END IF;
+
+    FOR k, v IN SELECT key, value FROM jsonb_each(payload)
+    LOOP
+        IF v IS NULL THEN
+            CONTINUE;
+        END IF;
+
+        -- Skip column_id for updates (can't update primary key)
+        IF has_column_id AND k = 'column_id' THEN
+            CONTINUE;
+        END IF;
+
+        cols := cols || quote_ident(k) || ', ';
+
+        -- UUID PRIMARY KEY
+        IF k = 'column_id' THEN
+            vals := vals || format(
+                '''%s''::uuid',
+                trim(both '"' from v::text)
+            ) || ', ';
+
+        -- UUID ARRAY
+        ELSIF k = 'events' AND jsonb_typeof(v) = 'array' THEN
+            vals := vals || format(
+                '(SELECT array_agg(x::uuid)
+                FROM jsonb_array_elements_text(%L::jsonb) AS x)',
+                v::text
+            ) || ', ';
+
+        -- TEXT / other scalars
+        ELSE
+            vals := vals || quote_literal(trim(both '"' from v::text)) || ', ';
+        END IF;
+
+        -- Build update clause (excluding column_id)
+        IF k != 'column_id' THEN
+            IF k = 'events' AND jsonb_typeof(v) = 'array' THEN
+                updates := updates || format(
+                    '%I = (SELECT array_agg(x::uuid) FROM jsonb_array_elements_text(%L::jsonb) AS x), ',
+                    k, v::text
+                );
+            ELSE
+                updates := updates || format(
+                    '%I = %L, ',
+                    k, trim(both '"' from v::text)
+                );
+            END IF;
+        END IF;
+    END LOOP;
+
+    cols := left(cols, length(cols) - 2);
+    vals := left(vals, length(vals) - 2);
+    
+    IF length(updates) > 0 THEN
+        updates := left(updates, length(updates) - 2);
+    END IF;
+
+    -- If column_id exists and we have updates, do an UPDATE
+    IF has_column_id AND length(updates) > 0 THEN
+        RETURN QUERY EXECUTE format(
+            'UPDATE kanban SET %s WHERE column_id = %L RETURNING *',
+            updates, target_column_id
+        );
+    -- If column_id exists but no updates, just return the existing row
+    ELSIF has_column_id THEN
+        RETURN QUERY EXECUTE format(
+            'SELECT * FROM kanban WHERE column_id = %L',
+            target_column_id
+        );
+    -- No column_id, do a normal INSERT
+    ELSE
+        RETURN QUERY EXECUTE format(
+            'INSERT INTO kanban (%s) VALUES (%s) RETURNING *',
+            cols, vals
+        );
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Read All
+CREATE OR REPLACE FUNCTION get_all_kanban()
+RETURNS SETOF kanban AS $$
+BEGIN
+    RETURN QUERY SELECT * FROM kanban ORDER BY created_at ASC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Read Single
+CREATE OR REPLACE FUNCTION get_kanban_by_id(target_id UUID)
+RETURNS SETOF kanban AS $$
+BEGIN
+    RETURN QUERY SELECT * FROM kanban WHERE column_id = target_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION delete_kanban(target_id UUID)
+RETURNS TEXT AS $$
+BEGIN
+    DELETE FROM kanban WHERE column_id = target_id;
+    RETURN 'Success';
+END;
+$$ LANGUAGE plpgsql;

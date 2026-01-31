@@ -489,12 +489,17 @@ class Default(WorkerEntrypoint):
 
             # ---- CREATE EVENT ----
             if path == "events" and method == "POST":
+                # if not check_role(payload, ['admin']):
+                #     return Response("Forbidden: Admin access required", status=403, headers=cors_headers)
+                
                 body = await request.json()
                 
                 data = await sb_post("rpc/create_event", {
                     "p_name": body["event_name"],
                     "p_description": body.get("event_description", ""),
-                    "p_datetime": body["event_datetime"]
+                    "p_datetime": body["event_datetime"],
+                    "p_project_id": body.get("project_id"),
+                    "p_tags": body.get("tags")
                 }, SUPABASE_URL, SUPABASE_KEY)
                 
                 result = await data.json()
@@ -510,7 +515,7 @@ class Default(WorkerEntrypoint):
                 
                 data = await sb_post("rpc/update_event", {
                     "p_event_id": event_id,
-                    "p_updates": body  # Pass entire body as JSONB
+                    "p_updates": body
                 }, SUPABASE_URL, SUPABASE_KEY)
                 
                 result = await data.json()
@@ -532,6 +537,76 @@ class Default(WorkerEntrypoint):
                 
                 if not result:
                     return Response("Event not found", status=404, headers=cors_headers)
+                
+                return Response.json({"success": True}, headers=cors_headers)
+
+           # ---- GET ALL KANBAN COLUMNS ----
+            if path == "kanban" and method == "GET":
+                data = await sb_post("rpc/get_all_kanban", {}, SUPABASE_URL, SUPABASE_KEY)
+                result = await data.json()
+                return Response.json(result if result else [], headers=cors_headers)
+
+            # ---- GET SINGLE KANBAN COLUMN ----
+            if path.startswith("kanban/") and method == "GET":
+                column_id = path.split("/")[1]
+                
+                data = await sb_post("rpc/get_kanban_by_id", {
+                    "target_id": column_id
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                
+                if not result or len(result) == 0:
+                    return Response("Kanban column not found", status=404, headers=cors_headers)
+                
+                return Response.json(result[0], headers=cors_headers)
+
+            # ---- CREATE/UPDATE KANBAN COLUMN (UPSERT) ----
+            if path == "kanban" and method == "POST":
+                body = await request.json()
+                
+                data = await sb_post("rpc/upsert_kanban", {
+                    "payload": body
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                
+                if not result or len(result) == 0:
+                    return Response("Failed to upsert kanban column", status=500, headers=cors_headers)
+                
+                return Response.json(result[0], headers=cors_headers)
+
+            # ---- UPDATE KANBAN COLUMN (UPSERT with column_id) ----
+            if path.startswith("kanban/") and method == "PATCH":
+                column_id = path.split("/")[1]
+                body = await request.json()
+                
+                # Add column_id to the payload for upsert
+                body["column_id"] = column_id
+                
+                data = await sb_post("rpc/upsert_kanban", {
+                    "payload": body
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                
+                if not result or len(result) == 0:
+                    return Response("Kanban column not found", status=404, headers=cors_headers)
+                
+                return Response.json(result[0], headers=cors_headers)
+
+            # ---- DELETE KANBAN COLUMN ----
+            if path.startswith("kanban/") and method == "DELETE":
+                column_id = path.split("/")[1]
+                
+                data = await sb_post("rpc/delete_kanban", {
+                    "target_id": column_id
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                result = await data.json()
+                
+                if result != "Success":
+                    return Response("Failed to delete kanban column", status=500, headers=cors_headers)
                 
                 return Response.json({"success": True}, headers=cors_headers)
 
