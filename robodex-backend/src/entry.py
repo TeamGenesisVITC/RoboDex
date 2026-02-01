@@ -48,6 +48,17 @@ def auth_payload(request, secret: str):
         return None
     return verify_jwt(auth[7:], secret)
 
+async def get_member_clearance(member_id: str, url: str, key: str):
+    """Get member clearance level from Supabase"""
+    res = await sb_get(
+        f"members?member_id=eq.{member_id}&select=clearance",
+        url,
+        key
+    )
+    if not res or len(res) == 0:
+        return None
+    return res[0].get("clearance")
+
 async def sb_get(path, url, key):
     headers = {
         "apikey": key,
@@ -142,8 +153,14 @@ class Default(WorkerEntrypoint):
             if not payload:
                 return Response("Unauthorized", status=401, headers=cors_headers)
 
+            # ---- CLEARANCE CHECK ----
+            clearance = await get_member_clearance(payload["member_id"], SUPABASE_URL, SUPABASE_KEY)
+
             # ---- ME ENDPOINT ----
             if path == "me" and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 return Response.json({
                     "member_id": payload["member_id"],
                     "name": payload["name"]
@@ -151,6 +168,9 @@ class Default(WorkerEntrypoint):
 
             # ---- INVENTORY ----
             if path == "registry" or path.startswith("registry"):
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 # Parse query string for filters
                 query_params = ""
                 if "?" in request.url:
@@ -165,11 +185,44 @@ class Default(WorkerEntrypoint):
 
             # ---- PROJECTS LIST ----
             if path == "projects" and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 data = await sb_get("projects?select=*", SUPABASE_URL, SUPABASE_KEY)
                 return Response.json(data, headers=cors_headers)
 
+            # ---- CREATE PROJECT ----
+            if path == "projects" and method == "POST":
+                if clearance is None or clearance < 5:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
+                body = await request.json()
+                
+                await sb_post("rpc/create_project", {
+                    "p_name": body["name"],
+                    "p_pool_id": body["pool_id"]
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                return Response.json({"success": True}, headers=cors_headers)
+
+            # ---- DELETE PROJECT ----
+            if path.startswith("projects/") and method == "DELETE":
+                if clearance is None or clearance < 5:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
+                project_id = path.split("/")[1]
+                
+                await sb_post("rpc/delete_project", {
+                    "p_project_id": project_id
+                }, SUPABASE_URL, SUPABASE_KEY)
+                
+                return Response.json({"success": True}, headers=cors_headers)
+
             # ---- UPDATE PROJECT (PATCH) ----
             if path.startswith("projects/") and method == "PATCH":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 project_id = path.split("/")[1]
                 body = await request.json()
                 
@@ -185,6 +238,9 @@ class Default(WorkerEntrypoint):
 
             # ---- GET PROJECT ANALYTICS ----
             if path.endswith("/analytics") and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 project_id = path.split("/")[1]
                 
                 data = await sb_post("rpc/get_project_items", {
@@ -196,6 +252,9 @@ class Default(WorkerEntrypoint):
 
             # ---- GET PROJECT DETAILS ----
             if path.startswith("projects/") and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 project_id = path.split("/")[1]
                 
                 # Get project info
@@ -212,6 +271,9 @@ class Default(WorkerEntrypoint):
 
             # ---- GITHUB CONTRIBUTORS ----
             if path.startswith("github/") and path.endswith("/contributors") and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 repo = path.replace("/contributors", "").split("/", 1)[1]
                 
                 try:
@@ -246,6 +308,9 @@ class Default(WorkerEntrypoint):
 
             # ---- GITHUB PULL REQUESTS ----
             if path.startswith("github/") and path.endswith("/pulls") and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 repo = path.replace("/pulls", "").split("/", 1)[1]
                 
                 try:
@@ -280,6 +345,9 @@ class Default(WorkerEntrypoint):
 
             # ---- GITHUB ISSUES (base endpoint, must be last) ----
             if path.startswith("github/") and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 # Extract repo (everything after "github/")
                 repo = path.split("/", 1)[1]
                 
@@ -319,6 +387,9 @@ class Default(WorkerEntrypoint):
 
             # ---- ISSUE ITEMS ----
             if path == "issue" and method == "POST":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 body = await request.json()
                 await sb_post("rpc/issue_items", {
                     "p_member_id": payload["member_id"],
@@ -330,6 +401,9 @@ class Default(WorkerEntrypoint):
             
             # ---- MY ISSUES ----
             if path == "my-issues" and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 data = await sb_get(
                     f"issues?member_id=eq.{payload['member_id']}&select=*",
                     SUPABASE_URL,
@@ -339,6 +413,9 @@ class Default(WorkerEntrypoint):
 
             # ---- FULL RETURN ----
             if path == "full" and method == "POST":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 body = await request.json()
                 await sb_post("rpc/return_issue", {
                     "p_issue_id": body["issue_id"]
@@ -347,6 +424,9 @@ class Default(WorkerEntrypoint):
 
             # ---- PARTIAL RETURN ----
             if path == "partial" and method == "POST":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 body = await request.json()
                 await sb_post("rpc/return_items", {
                     "p_issue_id": body["issue_id"],
@@ -355,6 +435,9 @@ class Default(WorkerEntrypoint):
                 return Response.json({"success": True}, headers=cors_headers)
             
             if path == "members/batch" and method == "POST":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 body = await request.json()
                 member_ids = body.get("member_ids", [])
                 
@@ -369,8 +452,11 @@ class Default(WorkerEntrypoint):
                 data = await sb_get("members?select=*", SUPABASE_URL, SUPABASE_KEY)
                 return Response.json(data, headers=cors_headers)
 
-         # ---- GET POOL DETAILS ----
+            # ---- GET POOL DETAILS ----
             if path.startswith("pool/") and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 pool_id = path.split("/")[1]
                 
                 data = await sb_post("rpc/get_pool_details", {
@@ -386,11 +472,17 @@ class Default(WorkerEntrypoint):
 
             # ---- GET ALL POOLS ----
             if path == "pools" and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 data = await sb_get("pool?select=*", SUPABASE_URL, SUPABASE_KEY)
                 return Response.json(data, headers=cors_headers)
 
             # ---- CREATE POOL ----
             if path == "pool" and method == "POST":
+                if clearance is None or clearance < 5:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 body = await request.json()
                 
                 await sb_post("pool", {
@@ -403,6 +495,9 @@ class Default(WorkerEntrypoint):
 
             # ---- UPDATE POOL ----
             if path.startswith("pool/") and method == "PATCH":
+                if clearance is None or clearance < 5:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 pool_id = path.split("/")[1]
                 body = await request.json()
                 
@@ -421,6 +516,9 @@ class Default(WorkerEntrypoint):
 
             # ---- DELETE POOL ----
             if path.startswith("pool/") and method == "DELETE":
+                if clearance is None or clearance < 5:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 pool_id = path.split("/")[1]
                 
                 res = await pyfetch(
@@ -440,6 +538,9 @@ class Default(WorkerEntrypoint):
             
             # ---- UPDATE PASSWORD ----
             if path == "update-password" and method == "POST":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 body = await request.json()
                 
                 # Verify current password
@@ -468,12 +569,18 @@ class Default(WorkerEntrypoint):
             
             # ---- GET ALL EVENTS ----
             if path == "events" and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 data = await sb_post("rpc/get_events", {}, SUPABASE_URL, SUPABASE_KEY)
                 result = await data.json()
                 return Response.json(result if result else [], headers=cors_headers)
 
             # ---- GET SINGLE EVENT ----
             if path.startswith("events/") and method == "GET":
+                if clearance is None or clearance < 0:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 event_id = path.split("/")[1]
                 
                 data = await sb_post("rpc/get_event", {
@@ -489,8 +596,8 @@ class Default(WorkerEntrypoint):
 
             # ---- CREATE EVENT ----
             if path == "events" and method == "POST":
-                # if not check_role(payload, ['admin']):
-                #     return Response("Forbidden: Admin access required", status=403, headers=cors_headers)
+                if clearance is None or clearance < 5:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
                 
                 body = await request.json()
                 
@@ -507,8 +614,8 @@ class Default(WorkerEntrypoint):
 
             # ---- UPDATE EVENT ----
             if path.startswith("events/") and method == "PATCH":
-                # if not check_role(payload, ['admin']):
-                #     return Response("Forbidden: Admin access required", status=403, headers=cors_headers)
+                if clearance is None or clearance < 5:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
                 
                 event_id = path.split("/")[1]
                 body = await request.json()
@@ -527,6 +634,9 @@ class Default(WorkerEntrypoint):
 
             # ---- DELETE EVENT ----
             if path.startswith("events/") and method == "DELETE":
+                if clearance is None or clearance < 5:
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 event_id = path.split("/")[1]
                 
                 data = await sb_post("rpc/delete_event", {
@@ -540,14 +650,20 @@ class Default(WorkerEntrypoint):
                 
                 return Response.json({"success": True}, headers=cors_headers)
 
-           # ---- GET ALL KANBAN COLUMNS ----
+            # ---- GET ALL KANBAN COLUMNS ----
             if path == "kanban" and method == "GET":
+                if (clearance is None) or (clearance < 0):
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 data = await sb_post("rpc/get_all_kanban", {}, SUPABASE_URL, SUPABASE_KEY)
                 result = await data.json()
                 return Response.json(result if result else [], headers=cors_headers)
 
             # ---- GET SINGLE KANBAN COLUMN ----
             if path.startswith("kanban/") and method == "GET":
+                if (clearance is None) or (clearance < 0):
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 column_id = path.split("/")[1]
                 
                 data = await sb_post("rpc/get_kanban_by_id", {
@@ -563,6 +679,9 @@ class Default(WorkerEntrypoint):
 
             # ---- CREATE/UPDATE KANBAN COLUMN (UPSERT) ----
             if path == "kanban" and method == "POST":
+                if (clearance is None) or (clearance < 5):
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 body = await request.json()
                 
                 data = await sb_post("rpc/upsert_kanban", {
@@ -578,6 +697,9 @@ class Default(WorkerEntrypoint):
 
             # ---- UPDATE KANBAN COLUMN (UPSERT with column_id) ----
             if path.startswith("kanban/") and method == "PATCH":
+                if (clearance is None) or (clearance < 5):
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 column_id = path.split("/")[1]
                 body = await request.json()
                 
@@ -597,6 +719,9 @@ class Default(WorkerEntrypoint):
 
             # ---- DELETE KANBAN COLUMN ----
             if path.startswith("kanban/") and method == "DELETE":
+                if (clearance is None) or (clearance < 5):
+                    return Response("Unauthorized: Insufficient clearance", status=401, headers=cors_headers)
+                
                 column_id = path.split("/")[1]
                 
                 data = await sb_post("rpc/delete_kanban", {
