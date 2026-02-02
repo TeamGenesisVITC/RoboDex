@@ -59,6 +59,28 @@ async def get_member_clearance(member_id: str, url: str, key: str):
         return None
     return res[0].get("clearance")
 
+async def get_member_dept(member_id: str, url: str, key: str):
+    """Get member department from Supabase"""
+    res = await sb_get(
+        f"members?member_id=eq.{member_id}&select=department",
+        url,
+        key
+    )
+    if not res or len(res) == 0:
+        return None
+    return res[0].get("department")
+
+async def get_member_phone(member_id: str, url: str, key: str):
+    """Get member phone number from Supabase"""
+    res = await sb_get(
+        f"members?member_id=eq.{member_id}&select=phone",
+        url,
+        key
+    )
+    if not res or len(res) == 0:
+        return None
+    return res[0].get("phone")
+
 async def sb_get(path, url, key):
     headers = {
         "apikey": key,
@@ -155,6 +177,8 @@ class Default(WorkerEntrypoint):
 
             # ---- CLEARANCE CHECK ----
             clearance = await get_member_clearance(payload["member_id"], SUPABASE_URL, SUPABASE_KEY)
+            department = await get_member_dept(payload["member_id"], SUPABASE_URL, SUPABASE_KEY)
+            phone = await get_member_phone(payload["member_id"], SUPABASE_URL, SUPABASE_KEY)
 
             # ---- ME ENDPOINT ----
             if path == "me" and method == "GET":
@@ -163,7 +187,10 @@ class Default(WorkerEntrypoint):
                 
                 return Response.json({
                     "member_id": payload["member_id"],
-                    "name": payload["name"]
+                    "name": payload["name"],
+                    "department": department,
+                    "phone": phone,
+                    "clearance": clearance,
                 }, headers=cors_headers)
 
             # ---- INVENTORY ----
@@ -199,8 +226,8 @@ class Default(WorkerEntrypoint):
                 body = await request.json()
                 
                 await sb_post("rpc/create_project", {
-                    "p_name": body["name"],
-                    "p_pool_id": body["pool_id"]
+                    "p_name": body["project_name"],
+                    "p_pool_id": body["pool"]
                 }, SUPABASE_URL, SUPABASE_KEY)
                 
                 return Response.json({"success": True}, headers=cors_headers)

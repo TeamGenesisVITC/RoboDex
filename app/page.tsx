@@ -37,6 +37,29 @@ export default function LoginPage() {
       
       console.log("Login successful! Token:", data.token.substring(0, 20) + "...");
       
+      // Fetch user data from /me endpoint
+      const meResponse = await fetch("https://robodex-backend.imsawant05.workers.dev/me", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${data.token}`,
+        },
+      });
+
+      if (meResponse.ok) {
+        const userData = await meResponse.json();
+        
+        // Store user data in sessionStorage
+        sessionStorage.setItem("member_id", userData.member_id);
+        sessionStorage.setItem("name", userData.name);
+        sessionStorage.setItem("department", userData.department);
+        sessionStorage.setItem("phone", userData.phone);
+        sessionStorage.setItem("clearance", userData.clearance.toString());
+        
+        console.log("User data stored:", userData);
+      } else {
+        console.error("Failed to fetch user data");
+      }
+      
       // Redirect to inventory
       router.push("/inventory");
     } catch (err) {

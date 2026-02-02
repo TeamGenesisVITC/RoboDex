@@ -46,6 +46,7 @@ export default function KanbanPage() {
   const [draggedEvent, setDraggedEvent] = useState<string | null>(null);
   const [editingColumn, setEditingColumn] = useState<string | null>(null);
   const [editingColumnData, setEditingColumnData] = useState<KanbanColumn | null>(null);
+  const [clearance, setClearance] = useState<number>(0);
   
   // New state for event selector
   const [selectedExistingEvent, setSelectedExistingEvent] = useState<string>("");
@@ -64,6 +65,10 @@ export default function KanbanPage() {
 
   useEffect(() => {
     fetchData();
+    // Get clearance from sessionStorage
+    const clearanceStr = sessionStorage.getItem("clearance");
+    const clearanceLevel = clearanceStr ? parseInt(clearanceStr, 10) : 0;
+    setClearance(clearanceLevel);
   }, []);
 
   const fetchData = async () => {
@@ -579,6 +584,8 @@ export default function KanbanPage() {
     return projects.find(p => p.project_id === projectId)?.project_name || "Unknown Project";
   };
 
+  const hasEditPermission = clearance >= 5;
+
   if (loading) {
     return (
       <main style={{
@@ -622,61 +629,63 @@ export default function KanbanPage() {
             WorkDeck
           </h1>
           
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            <button
-              onClick={addColumn}
-              style={{
-                padding: "0.75rem 1.5rem",
-                backgroundColor: "#2a2a2a",
-                border: "1px solid #3a3a3a",
-                borderRadius: "6px",
-                color: "#e0e0e0",
-                fontSize: "1rem",
-                fontWeight: "600",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                fontFamily: "'Montserrat', sans-serif",
-                transition: "all 0.3s ease"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#5b1be3";
-                e.currentTarget.style.backgroundColor = "#2d2d2d";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#3a3a3a";
-                e.currentTarget.style.backgroundColor = "#2a2a2a";
-              }}
-            >
-              <Plus size={20} />
-              Add Column
-            </button>
-            
-            <button
-              onClick={() => openCreateModal()}
-              style={{
-                padding: "0.75rem 1.5rem",
-                backgroundColor: "#5b1be3",
-                border: "none",
-                borderRadius: "6px",
-                color: "white",
-                fontSize: "1rem",
-                fontWeight: "600",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                fontFamily: "'Montserrat', sans-serif",
-                transition: "all 0.3s ease"
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#4a0fbf"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#5b1be3"}
-            >
-              <Plus size={20} />
-              New Event
-            </button>
-          </div>
+          {hasEditPermission && (
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button
+                onClick={addColumn}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  backgroundColor: "#2a2a2a",
+                  border: "1px solid #3a3a3a",
+                  borderRadius: "6px",
+                  color: "#e0e0e0",
+                  fontSize: "1rem",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  fontFamily: "'Montserrat', sans-serif",
+                  transition: "all 0.3s ease"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#5b1be3";
+                  e.currentTarget.style.backgroundColor = "#2d2d2d";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#3a3a3a";
+                  e.currentTarget.style.backgroundColor = "#2a2a2a";
+                }}
+              >
+                <Plus size={20} />
+                Add Column
+              </button>
+              
+              <button
+                onClick={() => openCreateModal()}
+                style={{
+                  padding: "0.75rem 1.5rem",
+                  backgroundColor: "#5b1be3",
+                  border: "none",
+                  borderRadius: "6px",
+                  color: "white",
+                  fontSize: "1rem",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  fontFamily: "'Montserrat', sans-serif",
+                  transition: "all 0.3s ease"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#4a0fbf"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#5b1be3"}
+              >
+                <Plus size={20} />
+                New Event
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Kanban Columns */}
@@ -694,11 +703,11 @@ export default function KanbanPage() {
               <div
                 key={column.column_id}
                 onDragOver={handleDragOver}
-                onDrop={() => handleDrop(column.column_id)}
+                onDrop={() => hasEditPermission && handleDrop(column.column_id)}
                 style={{
                   backgroundColor: "#2a2a2a",
                   borderRadius: "8px",
-                  border: `1px solid ${draggedEvent ? column.color + "80" : "#3a3a3a"}`,
+                  border: `1px solid ${draggedEvent && hasEditPermission ? column.color + "80" : "#3a3a3a"}`,
                   minHeight: "400px",
                   display: "flex",
                   flexDirection: "column"
@@ -744,19 +753,21 @@ export default function KanbanPage() {
                       {columnEvents.length}{column.maxSize ? `/${column.maxSize}` : ""}
                     </span>
                     
-                    <button
-                      onClick={() => openColumnSettings(column)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#888",
-                        cursor: "pointer",
-                        padding: "0.25rem",
-                        display: "flex"
-                      }}
-                    >
-                      <SettingsIcon size={16} />
-                    </button>
+                    {hasEditPermission && (
+                      <button
+                        onClick={() => openColumnSettings(column)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#888",
+                          cursor: "pointer",
+                          padding: "0.25rem",
+                          display: "flex"
+                        }}
+                      >
+                        <SettingsIcon size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -771,39 +782,41 @@ export default function KanbanPage() {
                   flexDirection: "column",
                   gap: "0.75rem"
                 }}>
-                  <button
-                    onClick={() => openCreateModal(column.column_id)}
-                    style={{
-                      width: "100%",
-                      padding: "0.75rem",
-                      backgroundColor: "transparent",
-                      border: "2px dashed #3a3a3a",
-                      borderRadius: "6px",
-                      color: "#888",
-                      cursor: "pointer",
-                      fontSize: "0.9rem",
-                      fontFamily: "'Montserrat', sans-serif",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "0.5rem",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = column.color;
-                      e.currentTarget.style.color = column.color;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#3a3a3a";
-                      e.currentTarget.style.color = "#888";
-                    }}
-                  >
-                    <Plus size={16} />
-                    Add Event
-                  </button>
+                  {hasEditPermission && (
+                    <button
+                      onClick={() => openCreateModal(column.column_id)}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        backgroundColor: "transparent",
+                        border: "2px dashed #3a3a3a",
+                        borderRadius: "6px",
+                        color: "#888",
+                        cursor: "pointer",
+                        fontSize: "0.9rem",
+                        fontFamily: "'Montserrat', sans-serif",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.5rem",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = column.color;
+                        e.currentTarget.style.color = column.color;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#3a3a3a";
+                        e.currentTarget.style.color = "#888";
+                      }}
+                    >
+                      <Plus size={16} />
+                      Add Event
+                    </button>
+                  )}
                   
                   {/* Existing Event Selector */}
-                  {getAvailableEvents().length > 0 && (
+                  {hasEditPermission && getAvailableEvents().length > 0 && (
                     <div style={{ display: "flex", gap: "0.5rem" }}>
                       <select
                         value={selectedExistingEvent}
@@ -863,8 +876,9 @@ export default function KanbanPage() {
                         color={column.color}
                         columnId={column.column_id}
                         projectName={event.project_id ? getProjectName(event.project_id) : undefined}
-                        onClick={() => openEditModal(event)}
-                        onDragStart={() => handleDragStart(event.event_id)}
+                        onClick={() => hasEditPermission && openEditModal(event)}
+                        onDragStart={() => hasEditPermission && handleDragStart(event.event_id)}
+                        hasEditPermission={hasEditPermission}
                       />
                     ))
                   )}
@@ -876,7 +890,7 @@ export default function KanbanPage() {
       </div>
 
       {/* Event Modal */}
-      {(selectedEvent || isCreating) && (
+      {(selectedEvent || isCreating) && hasEditPermission && (
         <div
           style={{
             position: "fixed",
@@ -1389,7 +1403,7 @@ export default function KanbanPage() {
       )}
 
       {/* Column Settings Modal */}
-      {editingColumn && editingColumnData && (
+      {editingColumn && editingColumnData && hasEditPermission && (
         <div
           style={{
             position: "fixed",
@@ -1674,9 +1688,10 @@ interface EventCardProps {
   projectName?: string;
   onClick: () => void;
   onDragStart: () => void;
+  hasEditPermission: boolean;
 }
 
-function EventCard({ event, color, columnId, projectName, onClick, onDragStart }: EventCardProps) {
+function EventCard({ event, color, columnId, projectName, onClick, onDragStart, hasEditPermission }: EventCardProps) {
   const eventDate = new Date(event.event_datetime);
   const now = new Date();
   const isOverdue = eventDate < now;
@@ -1686,7 +1701,7 @@ function EventCard({ event, color, columnId, projectName, onClick, onDragStart }
 
   return (
     <div
-      draggable
+      draggable={hasEditPermission}
       onDragStart={onDragStart}
       onClick={onClick}
       style={{
@@ -1695,28 +1710,35 @@ function EventCard({ event, color, columnId, projectName, onClick, onDragStart }
         borderLeft: `4px solid ${color}`,
         borderRadius: "6px",
         padding: "1rem",
-        cursor: "grab",
+        cursor: hasEditPermission ? "grab" : "default",
         transition: "all 0.2s ease",
         userSelect: "none"
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = "#2a2a2a";
-        e.currentTarget.style.borderColor = color + "60";
+        if (hasEditPermission) {
+          e.currentTarget.style.backgroundColor = "#2a2a2a";
+          e.currentTarget.style.borderColor = color + "60";
+        }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = "#232323";
-        e.currentTarget.style.borderColor = color + "40";
+        if (hasEditPermission) {
+          e.currentTarget.style.backgroundColor = "#232323";
+          e.currentTarget.style.borderColor = color + "40";
+        }
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.5rem" }}>
-        <GripVertical size={16} color="#666" style={{ marginTop: "0.2rem", flexShrink: 0 }} />
+        {hasEditPermission && (
+          <GripVertical size={16} color="#666" style={{ marginTop: "0.2rem", flexShrink: 0 }} />
+        )}
         <h4 style={{
           color: "#e0e0e0",
           fontSize: "0.95rem",
           fontWeight: "600",
           margin: 0,
           flex: 1,
-          lineHeight: "1.4"
+          lineHeight: "1.4",
+          marginLeft: hasEditPermission ? 0 : "0"
         }}>
           {event.event_name}
         </h4>
@@ -1728,7 +1750,7 @@ function EventCard({ event, color, columnId, projectName, onClick, onDragStart }
           alignItems: "flex-start",
           gap: "0.5rem",
           marginBottom: "0.75rem",
-          marginLeft: "1.5rem"
+          marginLeft: hasEditPermission ? "1.5rem" : "0"
         }}>
           <AlignLeft size={14} color="#888" style={{ marginTop: "0.15rem", flexShrink: 0 }} />
           <p style={{
@@ -1752,7 +1774,7 @@ function EventCard({ event, color, columnId, projectName, onClick, onDragStart }
         alignItems: "center",
         gap: "0.5rem",
         marginBottom: badges.length > 0 || projectName ? "0.75rem" : 0,
-        marginLeft: "1.5rem"
+        marginLeft: hasEditPermission ? "1.5rem" : "0"
       }}>
         <Clock size={14} color={isOverdue ? "#ff6b6b" : "#888"} />
         <span style={{
@@ -1776,7 +1798,7 @@ function EventCard({ event, color, columnId, projectName, onClick, onDragStart }
           display: "flex",
           flexWrap: "wrap",
           gap: "0.5rem",
-          marginLeft: "1.5rem"
+          marginLeft: hasEditPermission ? "1.5rem" : "0"
         }}>
           {projectName && (
             <div style={{

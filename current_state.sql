@@ -1237,7 +1237,7 @@ $function$
  LANGUAGE plpgsql
 AS $function$
 begin
-  insert into projects (name, pool_id)
+  insert into projects (project_name, pool)
   values (p_name, p_pool_id);
 end;
 $function$

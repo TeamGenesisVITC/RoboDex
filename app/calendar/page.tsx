@@ -19,6 +19,7 @@ export default function EventsPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [clearance, setClearance] = useState<number>(0);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -28,6 +29,12 @@ export default function EventsPage() {
   });
 
   useEffect(() => {
+    // Get clearance from sessionStorage
+    const storedClearance = sessionStorage.getItem("clearance");
+    if (storedClearance) {
+      setClearance(parseInt(storedClearance));
+    }
+
     fetchEvents();
   }, []);
 
@@ -43,6 +50,11 @@ export default function EventsPage() {
   };
 
   const handleCreateEvent = async () => {
+    if (clearance < 5) {
+      alert("You don't have permission to create events");
+      return;
+    }
+
     try {
       await api("events", {
         method: "POST",
@@ -56,6 +68,11 @@ export default function EventsPage() {
   };
 
   const handleUpdateEvent = async () => {
+    if (clearance < 5) {
+      alert("You don't have permission to update events");
+      return;
+    }
+
     if (!selectedEvent) return;
     
     try {
@@ -71,6 +88,11 @@ export default function EventsPage() {
   };
 
   const handleDeleteEvent = async () => {
+    if (clearance < 5) {
+      alert("You don't have permission to delete events");
+      return;
+    }
+
     if (!selectedEvent) return;
     
     if (!confirm("Are you sure you want to delete this event?")) return;
@@ -87,6 +109,10 @@ export default function EventsPage() {
   };
 
   const openCreateModal = (date?: Date) => {
+    if (clearance < 5) {
+      return; // Don't open modal if user doesn't have permission
+    }
+
     const datetime = date || new Date();
     datetime.setHours(12, 0, 0, 0);
     
@@ -207,29 +233,31 @@ export default function EventsPage() {
             Events Calendar
           </h1>
           
-          <button
-            onClick={() => openCreateModal()}
-            style={{
-              padding: "0.75rem 1.5rem",
-              backgroundColor: "#5b1be3",
-              border: "none",
-              borderRadius: "6px",
-              color: "white",
-              fontSize: "1rem",
-              fontWeight: "600",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              fontFamily: "'Montserrat', sans-serif",
-              transition: "all 0.3s ease"
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#4a0fbf"}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#5b1be3"}
-          >
-            <Plus size={20} />
-            Create Event
-          </button>
+          {clearance >= 5 && (
+            <button
+              onClick={() => openCreateModal()}
+              style={{
+                padding: "0.75rem 1.5rem",
+                backgroundColor: "#5b1be3",
+                border: "none",
+                borderRadius: "6px",
+                color: "white",
+                fontSize: "1rem",
+                fontWeight: "600",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                fontFamily: "'Montserrat', sans-serif",
+                transition: "all 0.3s ease"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#4a0fbf"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#5b1be3"}
+            >
+              <Plus size={20} />
+              Create Event
+            </button>
+          )}
         </div>
 
         {/* Calendar Navigation */}
@@ -381,30 +409,32 @@ export default function EventsPage() {
                           {day}
                         </span>
                         
-                        <button
-                          onClick={() => openCreateModal(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "#888",
-                            cursor: "pointer",
-                            padding: "0.25rem",
-                            display: "flex",
-                            alignItems: "center",
-                            borderRadius: "3px",
-                            transition: "all 0.2s ease"
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#3a3a3a";
-                            e.currentTarget.style.color = "#5b1be3";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "transparent";
-                            e.currentTarget.style.color = "#888";
-                          }}
-                        >
-                          <Plus size={16} />
-                        </button>
+                        {clearance >= 5 && (
+                          <button
+                            onClick={() => openCreateModal(new Date(currentDate.getFullYear(), currentDate.getMonth(), day))}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#888",
+                              cursor: "pointer",
+                              padding: "0.25rem",
+                              display: "flex",
+                              alignItems: "center",
+                              borderRadius: "3px",
+                              transition: "all 0.2s ease"
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "#3a3a3a";
+                              e.currentTarget.style.color = "#5b1be3";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = "transparent";
+                              e.currentTarget.style.color = "#888";
+                            }}
+                          >
+                            <Plus size={16} />
+                          </button>
+                        )}
                       </div>
 
                       {/* Events */}
@@ -494,7 +524,7 @@ export default function EventsPage() {
                 gap: "0.5rem"
               }}>
                 <CalendarIcon size={24} />
-                {isCreating ? "Create Event" : "Edit Event"}
+                {isCreating ? "Create Event" : "Event Details"}
               </h2>
               <button
                 onClick={closeModal}
@@ -529,6 +559,7 @@ export default function EventsPage() {
                   value={formData.event_name}
                   onChange={(e) => setFormData({ ...formData, event_name: e.target.value })}
                   placeholder="Enter event name"
+                  disabled={clearance < 5 && !isCreating}
                   style={{
                     width: "100%",
                     padding: "0.875rem",
@@ -538,9 +569,10 @@ export default function EventsPage() {
                     color: "#e0e0e0",
                     fontSize: "1rem",
                     fontFamily: "'Montserrat', sans-serif",
-                    outline: "none"
+                    outline: "none",
+                    cursor: clearance < 5 && !isCreating ? "not-allowed" : "text"
                   }}
-                  onFocus={(e) => e.target.style.borderColor = "#5b1be3"}
+                  onFocus={(e) => clearance >= 5 && (e.target.style.borderColor = "#5b1be3")}
                   onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                 />
               </div>
@@ -559,6 +591,7 @@ export default function EventsPage() {
                   type="datetime-local"
                   value={formData.event_datetime ? new Date(formData.event_datetime).toISOString().slice(0, 16) : ""}
                   onChange={(e) => setFormData({ ...formData, event_datetime: new Date(e.target.value).toISOString() })}
+                  disabled={clearance < 5 && !isCreating}
                   style={{
                     width: "100%",
                     padding: "0.875rem",
@@ -568,9 +601,10 @@ export default function EventsPage() {
                     color: "#e0e0e0",
                     fontSize: "1rem",
                     fontFamily: "'Montserrat', sans-serif",
-                    outline: "none"
+                    outline: "none",
+                    cursor: clearance < 5 && !isCreating ? "not-allowed" : "text"
                   }}
-                  onFocus={(e) => e.target.style.borderColor = "#5b1be3"}
+                  onFocus={(e) => clearance >= 5 && (e.target.style.borderColor = "#5b1be3")}
                   onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                 />
               </div>
@@ -590,6 +624,7 @@ export default function EventsPage() {
                   onChange={(e) => setFormData({ ...formData, event_description: e.target.value })}
                   placeholder="Enter event description"
                   rows={4}
+                  disabled={clearance < 5 && !isCreating}
                   style={{
                     width: "100%",
                     padding: "0.875rem",
@@ -600,83 +635,102 @@ export default function EventsPage() {
                     fontSize: "1rem",
                     fontFamily: "'Montserrat', sans-serif",
                     outline: "none",
-                    resize: "vertical"
+                    resize: "vertical",
+                    cursor: clearance < 5 && !isCreating ? "not-allowed" : "text"
                   }}
-                  onFocus={(e) => e.target.style.borderColor = "#5b1be3"}
+                  onFocus={(e) => clearance >= 5 && (e.target.style.borderColor = "#5b1be3")}
                   onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                 />
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div style={{
-              display: "flex",
-              gap: "0.75rem",
-              marginTop: "1.5rem",
-              flexWrap: "wrap"
-            }}>
-              <button
-                onClick={isCreating ? handleCreateEvent : handleUpdateEvent}
-                disabled={!formData.event_name || !formData.event_datetime}
-                style={{
-                  flex: 1,
-                  padding: "0.875rem",
-                  backgroundColor: formData.event_name && formData.event_datetime ? "#5b1be3" : "#3a3a3a",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontSize: "1rem",
-                  fontWeight: "600",
-                  cursor: formData.event_name && formData.event_datetime ? "pointer" : "not-allowed",
-                  fontFamily: "'Montserrat', sans-serif",
-                  transition: "all 0.3s ease"
-                }}
-                onMouseEnter={(e) => {
-                  if (formData.event_name && formData.event_datetime) {
-                    e.currentTarget.style.backgroundColor = "#4a0fbf";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (formData.event_name && formData.event_datetime) {
-                    e.currentTarget.style.backgroundColor = "#5b1be3";
-                  }
-                }}
-              >
-                {isCreating ? "Create Event" : "Save Changes"}
-              </button>
-
-              {!isCreating && (
+            {clearance >= 5 && (
+              <div style={{
+                display: "flex",
+                gap: "0.75rem",
+                marginTop: "1.5rem",
+                flexWrap: "wrap"
+              }}>
                 <button
-                  onClick={handleDeleteEvent}
+                  onClick={isCreating ? handleCreateEvent : handleUpdateEvent}
+                  disabled={!formData.event_name || !formData.event_datetime}
                   style={{
+                    flex: 1,
                     padding: "0.875rem",
-                    backgroundColor: "#3a2a2a",
-                    color: "#ff6b6b",
-                    border: "1px solid #3a3a3a",
+                    backgroundColor: formData.event_name && formData.event_datetime ? "#5b1be3" : "#3a3a3a",
+                    color: "white",
+                    border: "none",
                     borderRadius: "6px",
                     fontSize: "1rem",
                     fontWeight: "600",
-                    cursor: "pointer",
+                    cursor: formData.event_name && formData.event_datetime ? "pointer" : "not-allowed",
                     fontFamily: "'Montserrat', sans-serif",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
                     transition: "all 0.3s ease"
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#4a2a2a";
-                    e.currentTarget.style.borderColor = "#f44336";
+                    if (formData.event_name && formData.event_datetime) {
+                      e.currentTarget.style.backgroundColor = "#4a0fbf";
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#3a2a2a";
-                    e.currentTarget.style.borderColor = "#3a3a3a";
+                    if (formData.event_name && formData.event_datetime) {
+                      e.currentTarget.style.backgroundColor = "#5b1be3";
+                    }
                   }}
                 >
-                  <Trash2 size={18} />
-                  Delete
+                  {isCreating ? "Create Event" : "Save Changes"}
                 </button>
-              )}
-            </div>
+
+                {!isCreating && (
+                  <button
+                    onClick={handleDeleteEvent}
+                    style={{
+                      padding: "0.875rem",
+                      backgroundColor: "#3a2a2a",
+                      color: "#ff6b6b",
+                      border: "1px solid #3a3a3a",
+                      borderRadius: "6px",
+                      fontSize: "1rem",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      fontFamily: "'Montserrat', sans-serif",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      transition: "all 0.3s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#4a2a2a";
+                      e.currentTarget.style.borderColor = "#f44336";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#3a2a2a";
+                      e.currentTarget.style.borderColor = "#3a3a3a";
+                    }}
+                  >
+                    <Trash2 size={18} />
+                    Delete
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Read-only message for low clearance users */}
+            {clearance < 5 && !isCreating && (
+              <div style={{
+                marginTop: "1.5rem",
+                padding: "1rem",
+                backgroundColor: "rgba(255, 193, 7, 0.1)",
+                border: "1px solid rgba(255, 193, 7, 0.3)",
+                borderRadius: "6px",
+                color: "#ffc107",
+                fontSize: "0.9rem",
+                textAlign: "center"
+              }}>
+                You do not have permission to edit or delete events
+              </div>
+            )}
           </div>
         </div>
       )}
