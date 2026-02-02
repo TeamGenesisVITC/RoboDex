@@ -61,7 +61,7 @@ export default function LoginPage() {
       }
       
       // Redirect to inventory
-      router.push("/inventory");
+      router.push("/home");
     } catch (err) {
       setError("Login failed: " + (err as Error).message);
     }
