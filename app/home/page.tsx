@@ -876,7 +876,7 @@ export default function KanbanPage() {
                         color={column.color}
                         columnId={column.column_id}
                         projectName={event.project_id ? getProjectName(event.project_id) : undefined}
-                        onClick={() => hasEditPermission && openEditModal(event)}
+                        onClick={() => openEditModal(event)}
                         onDragStart={() => hasEditPermission && handleDragStart(event.event_id)}
                         hasEditPermission={hasEditPermission}
                       />
@@ -890,7 +890,7 @@ export default function KanbanPage() {
       </div>
 
       {/* Event Modal */}
-      {(selectedEvent || isCreating) && hasEditPermission && (
+      {(selectedEvent || isCreating) && (
         <div
           style={{
             position: "fixed",
@@ -1046,20 +1046,20 @@ export default function KanbanPage() {
                   value={formData.event_name}
                   onChange={(e) => setFormData({ ...formData, event_name: e.target.value })}
                   placeholder="Enter event name"
-                  disabled={!!selectedExistingEvent}
+                  disabled={!!selectedExistingEvent || !hasEditPermission}
                   style={{
                     width: "100%",
                     padding: "0.875rem",
-                    backgroundColor: selectedExistingEvent ? "#1a1a1a" : "#232323",
+                    backgroundColor: (selectedExistingEvent || !hasEditPermission) ? "#1a1a1a" : "#232323",
                     border: "1px solid #3a3a3a",
                     borderRadius: "6px",
-                    color: selectedExistingEvent ? "#666" : "#e0e0e0",
+                    color: (selectedExistingEvent || !hasEditPermission) ? "#666" : "#e0e0e0",
                     fontSize: "1rem",
                     fontFamily: "'Montserrat', sans-serif",
                     outline: "none",
-                    cursor: selectedExistingEvent ? "not-allowed" : "text"
+                    cursor: (selectedExistingEvent || !hasEditPermission) ? "not-allowed" : "text"
                   }}
-                  onFocus={(e) => !selectedExistingEvent && (e.target.style.borderColor = "#5b1be3")}
+                  onFocus={(e) => (!selectedExistingEvent && hasEditPermission) && (e.target.style.borderColor = "#5b1be3")}
                   onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                 />
               </div>
@@ -1078,20 +1078,20 @@ export default function KanbanPage() {
                   type="datetime-local"
                   value={formData.event_datetime ? new Date(formData.event_datetime).toISOString().slice(0, 16) : ""}
                   onChange={(e) => setFormData({ ...formData, event_datetime: new Date(e.target.value).toISOString() })}
-                  disabled={!!selectedExistingEvent}
+                  disabled={!!selectedExistingEvent || !hasEditPermission}
                   style={{
                     width: "100%",
                     padding: "0.875rem",
-                    backgroundColor: selectedExistingEvent ? "#1a1a1a" : "#232323",
+                    backgroundColor: (selectedExistingEvent || !hasEditPermission) ? "#1a1a1a" : "#232323",
                     border: "1px solid #3a3a3a",
                     borderRadius: "6px",
-                    color: selectedExistingEvent ? "#666" : "#e0e0e0",
+                    color: (selectedExistingEvent || !hasEditPermission) ? "#666" : "#e0e0e0",
                     fontSize: "1rem",
                     fontFamily: "'Montserrat', sans-serif",
                     outline: "none",
-                    cursor: selectedExistingEvent ? "not-allowed" : "text"
+                    cursor: (selectedExistingEvent || !hasEditPermission) ? "not-allowed" : "text"
                   }}
-                  onFocus={(e) => !selectedExistingEvent && (e.target.style.borderColor = "#5b1be3")}
+                  onFocus={(e) => (!selectedExistingEvent && hasEditPermission) && (e.target.style.borderColor = "#5b1be3")}
                   onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                 />
               </div>
@@ -1111,21 +1111,21 @@ export default function KanbanPage() {
                   onChange={(e) => setFormData({ ...formData, event_description: e.target.value })}
                   placeholder="Enter event description"
                   rows={3}
-                  disabled={!!selectedExistingEvent}
+                  disabled={!!selectedExistingEvent || !hasEditPermission}
                   style={{
                     width: "100%",
                     padding: "0.875rem",
-                    backgroundColor: selectedExistingEvent ? "#1a1a1a" : "#232323",
+                    backgroundColor: (selectedExistingEvent || !hasEditPermission) ? "#1a1a1a" : "#232323",
                     border: "1px solid #3a3a3a",
                     borderRadius: "6px",
-                    color: selectedExistingEvent ? "#666" : "#e0e0e0",
+                    color: (selectedExistingEvent || !hasEditPermission) ? "#666" : "#e0e0e0",
                     fontSize: "1rem",
                     fontFamily: "'Montserrat', sans-serif",
                     outline: "none",
                     resize: "vertical",
-                    cursor: selectedExistingEvent ? "not-allowed" : "text"
+                    cursor: (selectedExistingEvent || !hasEditPermission) ? "not-allowed" : "text"
                   }}
-                  onFocus={(e) => !selectedExistingEvent && (e.target.style.borderColor = "#5b1be3")}
+                  onFocus={(e) => (!selectedExistingEvent && hasEditPermission) && (e.target.style.borderColor = "#5b1be3")}
                   onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                 />
               </div>
@@ -1147,19 +1147,19 @@ export default function KanbanPage() {
                     setSelectedPool(e.target.value);
                     setFormData({ ...formData, project_id: "" });
                   }}
-                  disabled={!!selectedExistingEvent}
+                  disabled={!!selectedExistingEvent || !hasEditPermission}
                   style={{
                     width: "100%",
                     padding: "0.875rem",
-                    backgroundColor: selectedExistingEvent ? "#1a1a1a" : "#232323",
+                    backgroundColor: (selectedExistingEvent || !hasEditPermission) ? "#1a1a1a" : "#232323",
                     border: "1px solid #3a3a3a",
                     borderRadius: "6px",
-                    color: selectedExistingEvent ? "#666" : "#e0e0e0",
+                    color: (selectedExistingEvent || !hasEditPermission) ? "#666" : "#e0e0e0",
                     fontSize: "1rem",
                     fontFamily: "'Montserrat', sans-serif",
                     outline: "none",
                     marginBottom: "0.5rem",
-                    cursor: selectedExistingEvent ? "not-allowed" : "pointer"
+                    cursor: (selectedExistingEvent || !hasEditPermission) ? "not-allowed" : "pointer"
                   }}
                 >
                   <option value="">Select Pool</option>
@@ -1174,18 +1174,18 @@ export default function KanbanPage() {
                   <select
                     value={formData.project_id}
                     onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
-                    disabled={!!selectedExistingEvent}
+                    disabled={!!selectedExistingEvent || !hasEditPermission}
                     style={{
                       width: "100%",
                       padding: "0.875rem",
-                      backgroundColor: selectedExistingEvent ? "#1a1a1a" : "#232323",
+                      backgroundColor: (selectedExistingEvent || !hasEditPermission) ? "#1a1a1a" : "#232323",
                       border: "1px solid #3a3a3a",
                       borderRadius: "6px",
-                      color: selectedExistingEvent ? "#666" : "#e0e0e0",
+                      color: (selectedExistingEvent || !hasEditPermission) ? "#666" : "#e0e0e0",
                       fontSize: "1rem",
                       fontFamily: "'Montserrat', sans-serif",
                       outline: "none",
-                      cursor: selectedExistingEvent ? "not-allowed" : "pointer"
+                      cursor: (selectedExistingEvent || !hasEditPermission) ? "not-allowed" : "pointer"
                     }}
                   >
                     <option value="">Select Project</option>
@@ -1246,12 +1246,12 @@ export default function KanbanPage() {
                         <span>{tag}</span>
                         <button
                           onClick={() => removeTag(tag)}
-                          disabled={!!selectedExistingEvent}
+                          disabled={!!selectedExistingEvent || !hasEditPermission}
                           style={{
                             background: "none",
                             border: "none",
-                            color: selectedExistingEvent ? "#444" : "#888",
-                            cursor: selectedExistingEvent ? "not-allowed" : "pointer",
+                            color: (selectedExistingEvent || !hasEditPermission) ? "#444" : "#888",
+                            cursor: (selectedExistingEvent || !hasEditPermission) ? "not-allowed" : "pointer",
                             padding: 0,
                             display: "flex",
                             alignItems: "center"
@@ -1276,39 +1276,39 @@ export default function KanbanPage() {
                       }
                     }}
                     placeholder="Add custom tag"
-                    disabled={!!selectedExistingEvent}
+                    disabled={!!selectedExistingEvent || !hasEditPermission}
                     style={{
                       flex: 1,
                       padding: "0.875rem",
-                      backgroundColor: selectedExistingEvent ? "#1a1a1a" : "#232323",
+                      backgroundColor: (selectedExistingEvent || !hasEditPermission) ? "#1a1a1a" : "#232323",
                       border: "1px solid #3a3a3a",
                       borderRadius: "6px",
-                      color: selectedExistingEvent ? "#666" : "#e0e0e0",
+                      color: (selectedExistingEvent || !hasEditPermission) ? "#666" : "#e0e0e0",
                       fontSize: "1rem",
                       fontFamily: "'Montserrat', sans-serif",
                       outline: "none",
-                      cursor: selectedExistingEvent ? "not-allowed" : "text"
+                      cursor: (selectedExistingEvent || !hasEditPermission) ? "not-allowed" : "text"
                     }}
-                    onFocus={(e) => !selectedExistingEvent && (e.target.style.borderColor = "#5b1be3")}
+                    onFocus={(e) => (!selectedExistingEvent && hasEditPermission) && (e.target.style.borderColor = "#5b1be3")}
                     onBlur={(e) => e.target.style.borderColor = "#3a3a3a"}
                   />
                   <button
                     onClick={addTag}
-                    disabled={!!selectedExistingEvent}
+                    disabled={!!selectedExistingEvent || !hasEditPermission}
                     style={{
                       padding: "0.875rem 1.5rem",
-                      backgroundColor: selectedExistingEvent ? "#2a2a2a" : "#3a3a3a",
+                      backgroundColor: (selectedExistingEvent || !hasEditPermission) ? "#2a2a2a" : "#3a3a3a",
                       border: "none",
                       borderRadius: "6px",
-                      color: selectedExistingEvent ? "#444" : "#e0e0e0",
+                      color: (selectedExistingEvent || !hasEditPermission) ? "#444" : "#e0e0e0",
                       fontSize: "1rem",
                       fontWeight: "600",
-                      cursor: selectedExistingEvent ? "not-allowed" : "pointer",
+                      cursor: (selectedExistingEvent || !hasEditPermission) ? "not-allowed" : "pointer",
                       fontFamily: "'Montserrat', sans-serif",
                       transition: "all 0.2s ease"
                     }}
-                    onMouseEnter={(e) => !selectedExistingEvent && (e.currentTarget.style.backgroundColor = "#4a4a4a")}
-                    onMouseLeave={(e) => !selectedExistingEvent && (e.currentTarget.style.backgroundColor = "#3a3a3a")}
+                    onMouseEnter={(e) => (!selectedExistingEvent && hasEditPermission) && (e.currentTarget.style.backgroundColor = "#4a4a4a")}
+                    onMouseLeave={(e) => (!selectedExistingEvent && hasEditPermission) && (e.currentTarget.style.backgroundColor = "#3a3a3a")}
                   >
                     Add
                   </button>
@@ -1322,7 +1322,7 @@ export default function KanbanPage() {
                 marginTop: "1rem",
                 justifyContent: "flex-end"
               }}>
-                {!isCreating && (
+                {!isCreating && hasEditPermission && (
                   <button
                     onClick={handleDeleteEvent}
                     style={{
@@ -1365,37 +1365,39 @@ export default function KanbanPage() {
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#2d2d2d"}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#2a2a2a"}
                 >
-                  Cancel
+                  {hasEditPermission ? "Cancel" : "Close"}
                 </button>
                 
-                <button
-                  onClick={isCreating ? handleCreateEvent : handleUpdateEvent}
-                  disabled={!formData.event_name.trim()}
-                  style={{
-                    padding: "0.875rem 1.5rem",
-                    backgroundColor: formData.event_name.trim() ? "#5b1be3" : "#3a3a3a",
-                    border: "none",
-                    borderRadius: "6px",
-                    color: formData.event_name.trim() ? "white" : "#666",
-                    fontSize: "1rem",
-                    fontWeight: "600",
-                    cursor: formData.event_name.trim() ? "pointer" : "not-allowed",
-                    fontFamily: "'Montserrat', sans-serif",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    if (formData.event_name.trim()) {
-                      e.currentTarget.style.backgroundColor = "#4a0fbf";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (formData.event_name.trim()) {
-                      e.currentTarget.style.backgroundColor = "#5b1be3";
-                    }
-                  }}
-                >
-                  {isCreating ? "Create Event" : "Save Changes"}
-                </button>
+                {hasEditPermission && (
+                  <button
+                    onClick={isCreating ? handleCreateEvent : handleUpdateEvent}
+                    disabled={!formData.event_name.trim()}
+                    style={{
+                      padding: "0.875rem 1.5rem",
+                      backgroundColor: formData.event_name.trim() ? "#5b1be3" : "#3a3a3a",
+                      border: "none",
+                      borderRadius: "6px",
+                      color: formData.event_name.trim() ? "white" : "#666",
+                      fontSize: "1rem",
+                      fontWeight: "600",
+                      cursor: formData.event_name.trim() ? "pointer" : "not-allowed",
+                      fontFamily: "'Montserrat', sans-serif",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      if (formData.event_name.trim()) {
+                        e.currentTarget.style.backgroundColor = "#4a0fbf";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (formData.event_name.trim()) {
+                        e.currentTarget.style.backgroundColor = "#5b1be3";
+                      }
+                    }}
+                  >
+                    {isCreating ? "Create Event" : "Save Changes"}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1710,21 +1712,17 @@ function EventCard({ event, color, columnId, projectName, onClick, onDragStart, 
         borderLeft: `4px solid ${color}`,
         borderRadius: "6px",
         padding: "1rem",
-        cursor: hasEditPermission ? "grab" : "default",
+        cursor: hasEditPermission ? "grab" : "pointer",
         transition: "all 0.2s ease",
         userSelect: "none"
       }}
       onMouseEnter={(e) => {
-        if (hasEditPermission) {
-          e.currentTarget.style.backgroundColor = "#2a2a2a";
-          e.currentTarget.style.borderColor = color + "60";
-        }
+        e.currentTarget.style.backgroundColor = "#2a2a2a";
+        e.currentTarget.style.borderColor = color + "60";
       }}
       onMouseLeave={(e) => {
-        if (hasEditPermission) {
-          e.currentTarget.style.backgroundColor = "#232323";
-          e.currentTarget.style.borderColor = color + "40";
-        }
+        e.currentTarget.style.backgroundColor = "#232323";
+        e.currentTarget.style.borderColor = color + "40";
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.5rem" }}>
